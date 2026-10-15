@@ -113,6 +113,30 @@ Body text only (between the Gutenberg markers), checked Oct 15:
   ```
 - **AI attribution:** each AI-written Java file starts with a comment block containing the prompt used, the same convention as `schema.sql`.
 
+## Approaches Considered
+
+### Split, then clean up
+
+This was suggested by Prof. Cole as an approach to look into. It splits the text on whitespace, then strips punctuation from the ends of each piece.
+
+- **Strengths:** short, easy to read and easy to explain. Internal apostrophes and hyphens (`don't`, `well-known`) survive, because cleanup only touches the ends of a piece.
+- **Weaknesses:** some punctuation sits inside a piece, and each such case needs its own extra split:
+  - dashes without spaces, as in `observer—excellent` (the book has these)
+  - periods inside a piece, as in `U.S.A.`
+  - a terminator followed by closing quotes, as in `“Seven!”`, where the end of the piece has to be checked past the quote marks
+- **Splitting pitfall:** a plain `split(" ")` also produces empty pieces wherever there are double spaces, so it has to split on `\s+` instead.
+
+### Character scanner (chosen)
+
+This reads the text one character at a time. Each character is a letter, digit, joiner (an apostrophe or hyphen between letters), terminator or separator, and the rules in this document are applied as it goes.
+
+- **Strengths:** every case above falls out of the same character rules, with no extra splitting passes. Because the scanner knows whether a period comes directly after a word, the abbreviation and initial checks work without extra bookkeeping.
+- **Weaknesses:** longer, and harder to walk through than split-then-cleanup.
+
+### Decision
+
+Both approaches can implement the same rules; the difference is how much special-case handling each needs. The scanner was chosen because it handles in-piece punctuation uniformly and was already working. It passes all 31 tests and produces the results above on the full book. If the team prefers the split-then-cleanup style for readability, the tokenizer can be rewritten that way, and the same tests and book counts would confirm the output is unchanged.
+
 ## Open Items for the Team
 
 - **Committing the book:** confirm the text file can go in the repository rather than Teams.
@@ -155,3 +179,4 @@ This plan was written with AI assistance (Claude Code). These are the prompts, v
 5. "finalize the tokenizer plan, for lowercasing and accents, make them match the schema"
 6. "add the plan to docs or something"
 7. "okay implement the plan" (the implementation updates above came from this prompt)
+8. "yes add an approaches considered". Context: Jerry had mentioned that Prof. Cole suggested looking into split-then-cleanup tokenization (summary, not verbatim). The Approaches Considered section came from this prompt.
