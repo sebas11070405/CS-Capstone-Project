@@ -123,8 +123,12 @@ Body text only (between the Gutenberg markers), checked Oct 15:
 
 This plan was written with AI assistance (Claude Code). These are the prompts, verbatim:
 
-1. "lets plan out 3.1. professor says code can be done using ai, as long as the prompt used is given/attached"
-2. A Teams message from Giridhar Nair to the team, which Jerry pasted in as context:
+1. "read this whole repo rq"
+2. "these are some materials, im jerry, so read which part is mine", with two PDFs attached (not stored in the repo):
+   - `Project-SentenceBuilder.pdf`, the assignment spec
+   - `Project Management Plan Template - Copy.pdf`, the team's project management plan
+3. "lets plan out 3.1. professor says code can be done using ai, as long as the prompt used is given/attached"
+4. A Teams message from Giridhar Nair to the team, which Jerry pasted in as context:
 
    > We should first decide on the book to tokenize, I say: The Adventures of Sherlock Holmes by Arthur Conan Doyle. 105,000 words, enough for interesting counts. The spec asks for fairly large files and we could drop it into a directory in the project for tokenization.
    >
@@ -148,6 +152,6 @@ This plan was written with AI assistance (Claude Code). These are the prompts, v
    >
    > I know this is sent on short notice since our advisor meeting is today, [personal note omitted]. Let me know what you guys think, and how the work should be split up.
 
-3. "finalize the tokenizer plan, for lowercasing and accents, make them match the schema"
-4. "add the plan to docs or something"
-5. "okay implement the plan" (the implementation updates above came from this prompt)
+5. "finalize the tokenizer plan, for lowercasing and accents, make them match the schema"
+6. "add the plan to docs or something"
+7. "okay implement the plan" (the implementation updates above came from this prompt)
