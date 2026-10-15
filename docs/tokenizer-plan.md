@@ -124,7 +124,7 @@ Body text only (between the Gutenberg markers), checked Oct 15:
 This plan was written with AI assistance (Claude Code). These are the prompts, verbatim:
 
 1. "lets plan out 3.1. professor says code can be done using ai, as long as the prompt used is given/attached"
-2. Proposal shared with the team:
+2. A Teams message from Giridhar Nair to the team, which Jerry pasted in as context:
 
    > We should first decide on the book to tokenize, I say: The Adventures of Sherlock Holmes by Arthur Conan Doyle. 105,000 words, enough for interesting counts. The spec asks for fairly large files and we could drop it into a directory in the project for tokenization.
    >
