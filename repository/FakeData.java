@@ -8,7 +8,7 @@ public class FakeData implements TransitionRepository {
     @Override
     public List<WordTransition> getTransitions(String word) {
         switch (word) {
-            case "The":
+            case "the":
                 return List.of(
                     new WordTransition("cat", 7),
                     new WordTransition("dog", 2),
