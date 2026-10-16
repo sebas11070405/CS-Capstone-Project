@@ -11,7 +11,7 @@ public class MarkovTest {
     public void testGetTransitions() {
         FakeData fakeData = new FakeData();
 
-        MarkovGenerator generator = new MarkovGenerator(3, fakeData, "The");
+        MarkovGenerator generator = new MarkovGenerator(3, fakeData, "the");
 
 
             String sentence = generator.generateSentence();
