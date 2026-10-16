@@ -1,0 +1,11 @@
+*.idea
+*.iml
+
+
+.gradle/
+build/
+out/
+.DS_Store
+
+# Supabase credentials - never commit
+db.properties

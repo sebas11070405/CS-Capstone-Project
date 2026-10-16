@@ -1,4 +1,4 @@
-package generator;
+package com.sentencebuilder.generator;
 
 // Define what every generator must do
 public interface Generator{
