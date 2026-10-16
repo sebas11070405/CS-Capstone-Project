@@ -69,6 +69,8 @@ public class MarkovGenerator extends AbstractGenerator {
         
 }
 
+// AI Prompt: Write a selectNextWord() method that selects the next word from a list of word transitions using weighted
+// random selection based on each word's frequency.
 // Method to decide which word comes next based on the list of transitions.
 private String selectNextWord(List<WordTransition> transitions) {
 
