@@ -2,7 +2,7 @@
  * Contains functionality shared by generators, such as cleaning and validating sentences.
  */
 
-package generator;
+package com.sentencebuilder.generator;
 
 public abstract class AbstractGenerator implements Generator{
 
