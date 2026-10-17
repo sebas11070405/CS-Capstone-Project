@@ -135,10 +135,73 @@ class TokenizerTest {
         assertEquals(List.of(List.of("indeed"), List.of("he", "left")), sentences("“Indeed.” He left."));
     }
 
-    // Documented limitation: a terminator inside a quote ends the sentence
     @Test
-    void splitsAfterQuotedQuestion() {
-        assertEquals(List.of(List.of("what"), List.of("he", "asked")), sentences("“What?” he asked."));
+    void doesNotSplitAfterFrenchAbbreviations() {
+        assertEquals(List.of(List.of("mme", "and", "mlle", "dupont", "arrived")),
+                sentences("Mme. and Mlle. Dupont arrived."));
+    }
+
+    @Test
+    void lowercaseWordAfterQuestionOrExclamationContinues() {
+        assertEquals(List.of(List.of("what", "he", "asked")), sentences("\"What?\" he asked."));
+        assertEquals(List.of(List.of("what", "he", "asked")), sentences("“What?” he asked."));
+        assertEquals(List.of(List.of("oh", "my", "dear", "said", "he")), sentences("“Oh! my dear,” said he."));
+    }
+
+    @Test
+    void lowercaseWordAfterEllipsisContinues() {
+        assertEquals(List.of(List.of("wait", "and", "see")), sentences("Wait... and see."));
+        assertEquals(List.of(List.of("wait", "and", "see")), sentences("Wait… and see."));
+    }
+
+    @Test
+    void capitalizedWordAfterEllipsisSplits() {
+        assertEquals(List.of(List.of("wait"), List.of("then", "go")), sentences("Wait... Then go."));
+        assertEquals(List.of(List.of("wait"), List.of("then", "go")), sentences("Wait… Then go."));
+    }
+
+    @Test
+    void singlePeriodAlwaysSplits() {
+        assertEquals(List.of(List.of("one"), List.of("two")), sentences("One. two."));
+    }
+
+    // Documented limitation: a capitalized word after "!" or "?" starts a new sentence
+    @Test
+    void capitalizedWordAfterQuotedExclamationSplits() {
+        assertEquals(List.of(List.of("seven"), List.of("i", "answered")), sentences("“Seven!” I answered."));
+    }
+
+    // normalizeWord
+
+    @Test
+    void normalizeWordMatchesImportedText() {
+        assertEquals("hello", Tokenizer.normalizeWord("Hello"));
+        assertEquals("don't", Tokenizer.normalizeWord("Don’t"));
+        assertEquals("well-known", Tokenizer.normalizeWord("Well-Known"));
+        assertEquals("cafe", Tokenizer.normalizeWord("Café"));
+        assertEquals("strasse", Tokenizer.normalizeWord("STRAẞE"));
+        assertEquals("zyzzyva", Tokenizer.normalizeWord("Zyzzyva"));   // need not exist in the database
+    }
+
+    @Test
+    void normalizeWordIgnoresSurroundingPunctuation() {
+        assertEquals("hello", Tokenizer.normalizeWord("  “Hello,”  "));
+        assertEquals("mr", Tokenizer.normalizeWord("Mr."));
+        assertEquals("tis", Tokenizer.normalizeWord("'Tis"));
+    }
+
+    @Test
+    void normalizeWordRejectsAnythingButOneWord() {
+        assertNull(Tokenizer.normalizeWord(""));
+        assertNull(Tokenizer.normalizeWord("   "));
+        assertNull(Tokenizer.normalizeWord("..."));
+        assertNull(Tokenizer.normalizeWord("two words"));
+        assertNull(Tokenizer.normalizeWord("word--word"));
+        assertNull(Tokenizer.normalizeWord("da да"));
+        assertNull(Tokenizer.normalizeWord("1891"));
+        assertNull(Tokenizer.normalizeWord("221B"));
+        assertNull(Tokenizer.normalizeWord("b".repeat(101)));
+        assertEquals("a".repeat(100), Tokenizer.normalizeWord("a".repeat(100)));
     }
 
     @Test

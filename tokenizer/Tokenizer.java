@@ -20,6 +20,21 @@ Requirements:
 Keep the implementation straightforward and explain any sentence-splitting limitations. Add JUnit
 tests for contractions, hyphenated words, abbreviations, numbers, empty input, and text without final
 punctuation.
+
+Follow-up prompt:
+
+Please add a public static normalizeWord(String text) method to Tokenizer so autocomplete and
+user-supplied starting words use the same normalization rules as imported text. Reuse the existing
+logic. Return one normalized word, ignoring surrounding punctuation, or null for empty input, multiple
+words, numbers, or words longer than 100 characters. Valid words don't need to already exist in the
+database.
+
+Improve sentence handling so `"What?" he asked.` and `Wait... and see.` stay together, while
+`Wait... Then go.` and `One. two.` split. Handle both "..." and "…", and include "Mme." and "Mlle." as
+abbreviations.
+
+Keep the current simple structure and other behavior. Add tests for these cases and briefly explain
+any remaining limitations.
 */
 
 package tokenizer;
@@ -55,9 +70,13 @@ import java.util.Set;
  *
  * <p>Sentence rules:
  * <ul>
- *   <li>A sentence ends at ".", "!", "?" or "…", except for a period right after a common
- *       abbreviation ("Mr.", "Dr.", "St.") or a single-letter initial ("J. Watson"). The pronoun
- *       "I." still ends a sentence.</li>
+ *   <li>A sentence ends at ".", "!", "?" or an ellipsis ("..." or "…"). A run of terminators such
+ *       as "?!" or "..." counts as one.</li>
+ *   <li>A single period right after a common abbreviation ("Mr.", "Dr.", "Mme.") or a single-letter
+ *       initial ("J. Watson") does not end the sentence. The pronoun "I." still does.</li>
+ *   <li>After "!", "?" or an ellipsis, a lowercase next word continues the sentence:
+ *       "“What?” he asked." and "Wait... and see." stay together. After a single period the
+ *       sentence always ends, so "One. two." splits.</li>
  *   <li>A single newline is a space; a blank line always ends a sentence. The end of the input ends
  *       the last sentence even without final punctuation.</li>
  *   <li>Sentences with no words are never returned.</li>
@@ -65,9 +84,9 @@ import java.util.Set;
  *
  * <p>Known sentence-splitting limitations:
  * <ul>
- *   <li>A terminator inside a quote is treated as the end of the sentence, so
- *       "“What?” he asked." becomes two sentences: [what] and [he, asked].</li>
- *   <li>Each period in an ellipsis can end a sentence, so "Wait... and see." splits after "wait".</li>
+ *   <li>A capitalized word after "!" or "?" always starts a new sentence, even when it continues a
+ *       quote: "“Seven!” I answered." and "“Who?” Holmes asked." split after the quote.</li>
+ *   <li>A spaced ellipsis (". . .") is read as separate periods, so it always ends the sentence.</li>
  *   <li>An abbreviation or initial at the true end of a sentence ("He lives on Baker St.") does not
  *       end it, so it joins the next sentence.</li>
  *   <li>Abbreviations not in the list, such as "etc.", end the sentence.</li>
@@ -82,7 +101,7 @@ public class Tokenizer {
 
     // Words whose trailing period does not end a sentence, in normalized form
     private static final Set<String> ABBREVIATIONS = Set.of(
-            "mr", "mrs", "ms", "dr", "st", "messrs", "prof", "rev",
+            "mr", "mrs", "ms", "dr", "st", "messrs", "mme", "mlle", "prof", "rev",
             "capt", "col", "gen", "lt", "sgt", "jr", "sr", "co", "vs", "mt");
 
     private final BufferedReader reader;
@@ -129,6 +148,36 @@ public class Tokenizer {
         return sentences;
     }
 
+    /**
+     * Normalizes a single word, such as one typed into auto-complete or chosen as a starting word,
+     * the same way imported text is normalized. Surrounding punctuation is ignored, so "Hello," gives
+     * "hello". Returns null for empty input, more than one word, anything containing a digit, or a
+     * word longer than {@link #MAX_WORD_LENGTH}. The word does not have to exist in the database.
+     */
+    public static String normalizeWord(String text) {
+        String word = null;
+        int i = 0;
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (isLatinLetter(c) || Character.isDigit(c)) {
+                if (word != null) {
+                    return null;   // a second word
+                }
+                int start = i;
+                i = wordEnd(text, i);
+                word = toWord(text.substring(start, i));
+                if (word == null) {
+                    return null;   // a number or an over-long word
+                }
+            } else if (Character.isLetter(c)) {
+                return null;   // a non-Latin letter is another word, not punctuation
+            } else {
+                i++;
+            }
+        }
+        return word;
+    }
+
     // Joins lines up to the next blank line with spaces; returns null at the end of the input
     private String readParagraph() throws IOException {
         StringBuilder paragraph = new StringBuilder();
@@ -155,24 +204,31 @@ public class Tokenizer {
             char c = text.charAt(i);
             if (isLatinLetter(c) || Character.isDigit(c)) {
                 int start = i;
-                boolean hasDigit = false;
-                while (i < text.length() && isWordPart(text, i)) {
-                    hasDigit |= Character.isDigit(text.charAt(i));
-                    i++;
-                }
-                lastWord = hasDigit ? null : normalize(text.substring(start, i));
+                i = wordEnd(text, i);
+                lastWord = toWord(text.substring(start, i));
                 lastWordEnd = i;
-                if (lastWord != null && lastWord.length() <= MAX_WORD_LENGTH) {
+                if (lastWord != null) {
                     sentence.add(lastWord);
                 }
-            } else if (c == '.' || c == '!' || c == '?' || c == '…') {
-                boolean keepsSentenceOpen = c == '.' && lastWordEnd == i && lastWord != null
-                        && (ABBREVIATIONS.contains(lastWord) || isInitial(lastWord));
+            } else if (isTerminator(c)) {
+                // Treat a run of terminators such as "?!" or "..." as one
+                int start = i;
+                while (i < text.length() && isTerminator(text.charAt(i))) {
+                    i++;
+                }
+                boolean keepsSentenceOpen;
+                if (text.substring(start, i).equals(".")) {
+                    // "Mr." and "J." don't end a sentence; any other single period does, even in "One. two."
+                    keepsSentenceOpen = lastWordEnd == start && lastWord != null
+                            && (ABBREVIATIONS.contains(lastWord) || isInitial(lastWord));
+                } else {
+                    // After "!", "?" or an ellipsis, a lowercase word continues: "“What?” he asked."
+                    keepsSentenceOpen = nextWordIsLowercase(text, i);
+                }
                 if (!keepsSentenceOpen && !sentence.isEmpty()) {
                     sentences.add(sentence);
                     sentence = new ArrayList<>();
                 }
-                i++;
             } else {
                 i++;
             }
@@ -183,6 +239,36 @@ public class Tokenizer {
             sentences.add(sentence);
         }
         return sentences;
+    }
+
+    // Returns the index just after the word or number that starts at start
+    private static int wordEnd(String text, int start) {
+        int i = start + 1;
+        while (i < text.length() && isWordPart(text, i)) {
+            i++;
+        }
+        return i;
+    }
+
+    // Normalizes a scanned word; returns null for numbers and words too long for the database
+    private static String toWord(String raw) {
+        if (raw.chars().anyMatch(Character::isDigit)) {
+            return null;
+        }
+        String word = normalize(raw);
+        return word.length() <= MAX_WORD_LENGTH ? word : null;
+    }
+
+    // Whether the next word after index i, skipping quotes and spaces, starts with a lowercase letter
+    private static boolean nextWordIsLowercase(String text, int i) {
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            if (Character.isLetterOrDigit(c) || isTerminator(c)) {
+                return Character.isLowerCase(c);
+            }
+            i++;
+        }
+        return false;
     }
 
     // Whether the character at i continues the current word or number
@@ -236,6 +322,10 @@ public class Tokenizer {
 
     private static boolean isAccentMark(char c) {
         return Character.getType(c) == Character.NON_SPACING_MARK;
+    }
+
+    private static boolean isTerminator(char c) {
+        return c == '.' || c == '!' || c == '?' || c == '…';
     }
 
     private static boolean isApostrophe(char c) {
