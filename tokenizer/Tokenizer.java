@@ -35,6 +35,12 @@ abbreviations.
 
 Keep the current simple structure and other behavior. Add tests for these cases and briefly explain
 any remaining limitations.
+
+Second follow-up prompt:
+
+I noticed normalizeWord("hello𝟎") returns "hello" instead of null, and the accent test repeats "café"
+even though the comment says one is decomposed. Please fix the Unicode digit handling, use
+"cafe\u0301" for the decomposed case, and add a regression test. Keep everything else unchanged.
 */
 
 package tokenizer;
@@ -159,7 +165,7 @@ public class Tokenizer {
         int i = 0;
         while (i < text.length()) {
             char c = text.charAt(i);
-            if (isLatinLetter(c) || Character.isDigit(c)) {
+            if (isLatinLetter(c) || isDigitAt(text, i)) {
                 if (word != null) {
                     return null;   // a second word
                 }
@@ -202,7 +208,7 @@ public class Tokenizer {
         int i = 0;
         while (i < text.length()) {
             char c = text.charAt(i);
-            if (isLatinLetter(c) || Character.isDigit(c)) {
+            if (isLatinLetter(c) || isDigitAt(text, i)) {
                 int start = i;
                 i = wordEnd(text, i);
                 lastWord = toWord(text.substring(start, i));
@@ -252,7 +258,7 @@ public class Tokenizer {
 
     // Normalizes a scanned word; returns null for numbers and words too long for the database
     private static String toWord(String raw) {
-        if (raw.chars().anyMatch(Character::isDigit)) {
+        if (raw.codePoints().anyMatch(Character::isDigit)) {
             return null;
         }
         String word = normalize(raw);
@@ -263,7 +269,7 @@ public class Tokenizer {
     private static boolean nextWordIsLowercase(String text, int i) {
         while (i < text.length()) {
             char c = text.charAt(i);
-            if (Character.isLetterOrDigit(c) || isTerminator(c)) {
+            if (Character.isLetter(c) || isDigitAt(text, i) || isTerminator(c)) {
                 return Character.isLowerCase(c);
             }
             i++;
@@ -274,22 +280,29 @@ public class Tokenizer {
     // Whether the character at i continues the current word or number
     private static boolean isWordPart(String text, int i) {
         char c = text.charAt(i);
-        if (isLatinLetter(c) || Character.isDigit(c) || isAccentMark(c)) {
+        if (isLatinLetter(c) || isDigitAt(text, i) || isAccentMark(c)) {
             return true;
         }
         char previous = text.charAt(i - 1);
-        char next = i + 1 < text.length() ? text.charAt(i + 1) : ' ';
-        boolean previousInWord = isLatinLetter(previous) || Character.isDigit(previous) || isAccentMark(previous);
-        boolean nextInWord = isLatinLetter(next) || Character.isDigit(next);
+        boolean hasNext = i + 1 < text.length();
+        boolean previousIsDigit = isDigitAt(text, i - 1);
+        boolean nextIsDigit = hasNext && isDigitAt(text, i + 1);
+        boolean previousInWord = isLatinLetter(previous) || previousIsDigit || isAccentMark(previous);
+        boolean nextInWord = (hasNext && isLatinLetter(text.charAt(i + 1))) || nextIsDigit;
         // An apostrophe or single hyphen joins two parts of a word: "don't", "well-known"
         if (isApostrophe(c) || isHyphen(c)) {
             return previousInWord && nextInWord;
         }
         // A decimal point or thousands comma keeps a number together, so "3.50" doesn't end a sentence
         if (c == '.' || c == ',') {
-            return Character.isDigit(previous) && Character.isDigit(next);
+            return previousIsDigit && nextIsDigit;
         }
         return false;
+    }
+
+    // Whether the char at i belongs to a digit, including digits stored as two chars such as "𝟎"
+    private static boolean isDigitAt(String text, int i) {
+        return Character.isDigit(text.codePointAt(i)) || Character.isDigit(text.codePointBefore(i + 1));
     }
 
     // Matches the utf8mb4_unicode_ci collation: case- and accent-insensitive

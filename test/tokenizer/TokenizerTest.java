@@ -76,7 +76,7 @@ class TokenizerTest {
 
     @Test
     void removesAccents() {
-        assertEquals(List.of("cafe", "cafe", "naive", "elan"), words("café café naïve Élan"));   // second is a decomposed accent
+        assertEquals(List.of("cafe", "cafe", "naive", "elan"), words("café cafe\u0301 naïve Élan"));   // second is a decomposed accent
     }
 
     @Test
@@ -98,6 +98,7 @@ class TokenizerTest {
         assertEquals(List.of(List.of("lived", "at", "baker", "street")), sentences("Lived at 221B Baker Street."));
         assertEquals(List.of(List.of("the", "of", "may")), sentences("The 1st of May."));
         assertEquals(List.of(List.of("in", "the", "early")), sentences("In the early ’60’s."));
+        assertEquals(List.of(List.of("in", "he", "came")), sentences("In hello𝟎 he came."));   // digit outside the BMP
     }
 
     // Sentence endings
@@ -200,6 +201,7 @@ class TokenizerTest {
         assertNull(Tokenizer.normalizeWord("da да"));
         assertNull(Tokenizer.normalizeWord("1891"));
         assertNull(Tokenizer.normalizeWord("221B"));
+        assertNull(Tokenizer.normalizeWord("hello𝟎"));   // a digit outside the BMP, stored as two chars
         assertNull(Tokenizer.normalizeWord("b".repeat(101)));
         assertEquals("a".repeat(100), Tokenizer.normalizeWord("a".repeat(100)));
     }
