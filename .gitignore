@@ -9,3 +9,5 @@ out/
 
 # Supabase credentials - never commit
 db.properties
+
+.env

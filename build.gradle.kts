@@ -23,6 +23,7 @@ javafx {
 
 dependencies {
     implementation("org.postgresql:postgresql:42.7.14")
+    implementation("io.github.cdimascio:dotenv-java:3.2.0")
 
     testImplementation(platform("org.junit:junit-bom:5.12.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
