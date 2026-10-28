@@ -16,6 +16,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 // Requires a valid .env. Each test is rolled back, so nothing is left in Supabase.
 class ImporterTest {
 
+    // Made up so it can't collide with real words already in the shared database
+    private static final String WORD = "zzqtest";
+
     private interface DatabaseWork {
         void run(Connection conn) throws Exception;
     }
@@ -39,10 +42,10 @@ class ImporterTest {
     void differentTextsAddToExistingCounts() throws Exception {
         inRolledBackTransaction(conn -> {
             Importer.write(conn, "first.txt", stats("Zzqtest one. Zzqtest two zzqtest."));
-            assertCounts(conn, "zzqtest", 3, 2, 1);
+            assertCounts(conn, 3, 2, 1);
 
             Importer.write(conn, "second.txt", stats("Zzqtest three."));
-            assertCounts(conn, "zzqtest", 4, 3, 1);
+            assertCounts(conn, 4, 3, 1);
         });
     }
 
@@ -54,17 +57,16 @@ class ImporterTest {
             DuplicateImportException e = assertThrows(DuplicateImportException.class, () ->
                     Importer.write(conn, "renamed.txt", stats("ZZQTEST one.\r\nZzqtest two zzqtest.")));
             assertTrue(e.getMessage().contains("original.txt"), e.getMessage());
-            assertCounts(conn, "zzqtest", 3, 2, 1);
+            assertCounts(conn, 3, 2, 1);
         });
     }
 
-    private static void assertCounts(Connection conn, String word, int total, int start, int end)
-            throws SQLException {
+    private static void assertCounts(Connection conn, int total, int start, int end) throws SQLException {
         try (PreparedStatement statement = conn.prepareStatement(
                 "SELECT total_count, start_count, end_count FROM words WHERE word = ?")) {
-            statement.setString(1, word);
+            statement.setString(1, WORD);
             try (ResultSet rs = statement.executeQuery()) {
-                assertTrue(rs.next(), word + " not found");
+                assertTrue(rs.next(), WORD + " not found");
                 assertEquals(total, rs.getInt(1));
                 assertEquals(start, rs.getInt(2));
                 assertEquals(end, rs.getInt(3));
