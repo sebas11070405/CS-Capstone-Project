@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Test;
 
 class TokenizerTest {
 
-    // Returns all words of the text in order, ignoring sentence boundaries
     private static List<String> words(String text) {
         return Tokenizer.tokenize(text).stream().flatMap(List::stream).toList();
     }
@@ -24,8 +23,6 @@ class TokenizerTest {
     private static List<List<String>> sentences(String text) {
         return Tokenizer.tokenize(text);
     }
-
-    // Words
 
     @Test
     void lowercasesWords() {
@@ -69,8 +66,6 @@ class TokenizerTest {
         assertEquals(List.of("before", "after"), words("before " + "b".repeat(101) + " after"));
     }
 
-    // Normalization, checked against utf8mb4_unicode_ci in schema.sql
-
     @Test
     void removesAccents() {
         assertEquals(List.of("cafe", "cafe", "naive", "elan"), words("café cafe\u0301 naïve Élan"));   // second is a decomposed accent
@@ -86,8 +81,6 @@ class TokenizerTest {
         assertEquals(List.of("æther", "øre", "łodz"), words("Æther Øre Łodz"));
     }
 
-    // Numbers
-
     @Test
     void skipsNumbersWithoutEndingTheSentence() {
         assertEquals(List.of(List.of("in", "he", "came")), sentences("In 1891 he came."));
@@ -97,8 +90,6 @@ class TokenizerTest {
         assertEquals(List.of(List.of("in", "the", "early")), sentences("In the early ’60’s."));
         assertEquals(List.of(List.of("in", "he", "came")), sentences("In hello𝟎 he came."));   // digit outside the BMP
     }
-
-    // Sentence endings
 
     @Test
     void splitsOnTerminators() {
@@ -163,13 +154,11 @@ class TokenizerTest {
         assertEquals(List.of(List.of("one"), List.of("two")), sentences("One. two."));
     }
 
-    // Documented limitation: a capitalized word after "!" or "?" starts a new sentence
+    // Known limitation, not the behavior we want
     @Test
     void capitalizedWordAfterQuotedExclamationSplits() {
         assertEquals(List.of(List.of("seven"), List.of("i", "answered")), sentences("“Seven!” I answered."));
     }
-
-    // normalizeWord
 
     @Test
     void normalizeWordMatchesImportedText() {
@@ -209,8 +198,6 @@ class TokenizerTest {
         assertEquals(List.of(List.of("one"), List.of("two")), sentences("One. Two"));
     }
 
-    // Lines
-
     @Test
     void singleNewlineIsASpace() {
         assertEquals(List.of(List.of("it", "was", "late")), sentences("It was\nlate."));
@@ -223,16 +210,12 @@ class TokenizerTest {
                 sentences("A SCANDAL IN BOHEMIA\n\nTo Sherlock Holmes"));
     }
 
-    // Empty input
-
     @Test
     void emptyInputHasNoSentences() {
         assertEquals(List.of(), sentences(""));
         assertEquals(List.of(), sentences("   \n\n \t \r\n"));
         assertEquals(List.of(), sentences("1891 -- ... !!"));
     }
-
-    // Reading from a Reader
 
     @Test
     void nextSentenceReturnsOneSentenceAtATime() throws IOException {
@@ -243,7 +226,6 @@ class TokenizerTest {
         assertNull(tokenizer.nextSentence());
     }
 
-    // Excerpt from The Adventures of Sherlock Holmes, line wrapping as in the Gutenberg file
 
     @Test
     void bookOpeningParagraph() {
