@@ -15,8 +15,15 @@ CREATE TABLE source_files
     source_type  VARCHAR(20)  NOT NULL DEFAULT 'file'
                               CHECK (source_type IN ('file', 'generated')),
     word_count   INT          NOT NULL DEFAULT 0 CHECK (word_count >= 0),
-    imported_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+    imported_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    content_hash CHAR(64),                          -- SHA-256 of the tokenized words
+    CHECK (source_type <> 'file' OR content_hash IS NOT NULL)
 );
+
+-- Generated batches may repeat; the same file may not.
+CREATE UNIQUE INDEX ux_source_files_hash
+    ON source_files (content_hash)
+    WHERE source_type = 'file';
 
 -- Each distinct word and how often it appears overall, at the start, and at the end of a sentence.
 CREATE TABLE words
