@@ -10,26 +10,52 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+// Requires a valid .env. Each test is rolled back, so nothing is left in Supabase.
 class ImporterTest {
 
-    // Requires a valid .env. Everything is rolled back, so nothing is left in Supabase.
-    @Test
-    void writingTwiceAddsToExistingCounts() throws Exception {
-        CorpusStats stats = CorpusStats.from(new StringReader("Zzqtest one. Zzqtest two zzqtest."));
+    private interface DatabaseWork {
+        void run(Connection conn) throws Exception;
+    }
+
+    private static void inRolledBackTransaction(DatabaseWork work) throws Exception {
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                Importer.writeWords(conn, stats);
-                assertCounts(conn, "zzqtest", 3, 2, 1);
-
-                Importer.writeWords(conn, stats);
-                assertCounts(conn, "zzqtest", 6, 4, 2);
+                work.run(conn);
             } finally {
                 conn.rollback();
             }
         }
+    }
+
+    private static CorpusStats stats(String text) throws Exception {
+        return CorpusStats.from(new StringReader(text));
+    }
+
+    @Test
+    void differentTextsAddToExistingCounts() throws Exception {
+        inRolledBackTransaction(conn -> {
+            Importer.write(conn, "first.txt", stats("Zzqtest one. Zzqtest two zzqtest."));
+            assertCounts(conn, "zzqtest", 3, 2, 1);
+
+            Importer.write(conn, "second.txt", stats("Zzqtest three."));
+            assertCounts(conn, "zzqtest", 4, 3, 1);
+        });
+    }
+
+    @Test
+    void sameTextIsRejectedEvenUnderAnotherName() throws Exception {
+        inRolledBackTransaction(conn -> {
+            Importer.write(conn, "original.txt", stats("Zzqtest one. Zzqtest two zzqtest."));
+
+            DuplicateImportException e = assertThrows(DuplicateImportException.class, () ->
+                    Importer.write(conn, "renamed.txt", stats("ZZQTEST one.\r\nZzqtest two zzqtest.")));
+            assertTrue(e.getMessage().contains("original.txt"), e.getMessage());
+            assertCounts(conn, "zzqtest", 3, 2, 1);
+        });
     }
 
     private static void assertCounts(Connection conn, String word, int total, int start, int end)
