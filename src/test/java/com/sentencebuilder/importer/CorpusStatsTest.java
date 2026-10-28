@@ -7,6 +7,7 @@ import java.io.StringReader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class CorpusStatsTest {
 
@@ -43,6 +44,21 @@ class CorpusStatsTest {
         CorpusStats stats = stats("Holmes said. HOLMES left.");
         assertCounts(stats, "holmes", 2, 2, 0);
         assertFalse(stats.words().containsKey("Holmes"));
+    }
+
+    @Test
+    void hashIgnoresFormatting() throws IOException {
+        String hash = stats("The cat sat.\nThe dog ran.").contentHash();
+        assertEquals(64, hash.length());
+        assertEquals(hash, stats("The cat sat.\r\nThe dog ran.").contentHash());
+        assertEquals(hash, stats("THE  CAT\nSAT!   The dog ran").contentHash());
+    }
+
+    @Test
+    void hashChangesWithWordsOrSentenceBreaks() throws IOException {
+        String hash = stats("The cat sat. The dog ran.").contentHash();
+        assertNotEquals(hash, stats("The cat sat. The dog sat.").contentHash());
+        assertNotEquals(hash, stats("The cat sat the dog ran.").contentHash());
     }
 
     @Test
