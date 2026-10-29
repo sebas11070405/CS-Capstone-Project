@@ -1,5 +1,13 @@
-/* 
-Prompt used:
+/*
+Creates every table and index the app uses: source_files for imported files
+and generated batches, words for per-word counts, bigrams and trigrams for
+which words follow which, and generated_sentences for the duplicates report.
+It has already been run on the shared Supabase database. Running it again
+fails because the tables exist. Use reset.sql to clear the data instead.
+
+AI-assisted: TODO(Sebastian): name the tool used for the prompt below
+
+Prompt:
 I'm the database architect on a Java/JavaFX sentence-generator project using
 PostgreSQL on Supabase. Review the attached assignment and my schema.sql below.
 Fix problems, add needed indexes and integrity constraints, keep existing names,
