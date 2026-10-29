@@ -1,3 +1,10 @@
+/*
+ * Checks that imports add to existing word counts and that the same text is
+ * rejected even under another file name. They need a valid .env because they
+ * write to the shared Supabase database. Each test runs inside a transaction
+ * that is rolled back, so nothing is left behind. Run them with ./gradlew test.
+ */
+
 package com.sentencebuilder.importer;
 
 import com.sentencebuilder.database.Database;
@@ -13,16 +20,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-// Requires a valid .env. Each test is rolled back, so nothing is left in Supabase.
 class ImporterTest {
 
     // Made up so it can't collide with real words already in the shared database
     private static final String WORD = "zzqtest";
 
+    /** Database work a test passes in as a lambda. Unlike Runnable, it may throw. */
     private interface DatabaseWork {
         void run(Connection conn) throws Exception;
     }
 
+    /** Runs the work in a transaction and always rolls it back, even if the work fails. */
     private static void inRolledBackTransaction(DatabaseWork work) throws Exception {
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
@@ -54,13 +62,14 @@ class ImporterTest {
         inRolledBackTransaction(conn -> {
             Importer.write(conn, "original.txt", stats("Zzqtest one. Zzqtest two zzqtest."));
 
-            DuplicateImportException e = assertThrows(DuplicateImportException.class, () ->
+            DuplicateImportException thrown = assertThrows(DuplicateImportException.class, () ->
                     Importer.write(conn, "renamed.txt", stats("ZZQTEST one.\r\nZzqtest two zzqtest.")));
-            assertTrue(e.getMessage().contains("original.txt"), e.getMessage());
+            assertTrue(thrown.getMessage().contains("original.txt"), thrown.getMessage());
             assertCounts(conn, 3, 2, 1);
         });
     }
 
+    /** Asserts the total, start, and end counts stored for WORD in the words table. */
     private static void assertCounts(Connection conn, int total, int start, int end) throws SQLException {
         try (PreparedStatement statement = conn.prepareStatement(
                 "SELECT total_count, start_count, end_count FROM words WHERE word = ?")) {

@@ -1,3 +1,8 @@
+/*
+ * Checks the word, start, and end counts and the content hash for small
+ * sample texts. They need no database. Run them with ./gradlew test.
+ */
+
 package com.sentencebuilder.importer;
 
 import org.junit.jupiter.api.Test;
