@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Import Text File button and the status label that reports its progress.
+  MainController handles the button and updates the label.
+-->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
