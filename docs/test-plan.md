@@ -65,3 +65,78 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+### 2.3 Importer Module (`com.sentencebuilder.importer`)
+
+**Owner:** Jerry Chen  
+**Test Framework:** JUnit 5
+
+| Test Case | Input | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-I1 | Small text file (10 words) | File imported, word counts in DB | Import succeeds |
+| TC-I2 | Duplicate file (same content, different name) | Rejected with `DuplicateImportException` | Duplicate detection by hash |
+| TC-I3 | File with 1000 words | All words in DB, counts accurate | Batching works |
+| TC-I4 | Progress indicator during import | Callback fired N times | Progress reported |
+| TC-I5 | File with 0 words | Handled gracefully (skip or error) | Edge case handled |
+
+**Exit Criteria:** All import scenarios work; SHA-256 hash verified in test.
+
+---
+
+### 2.4 Generative Engine (`com.sentencebuilder.generator`)
+
+**Owner:** Alicia Nea  
+**Test Framework:** JUnit 5 + fixed random seed for reproducibility
+
+#### TC-G1: Probability-Weighted (Markov) Generator
+
+| Test Case | Setup | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-G1a | Start word "the"; corpus has ["the cat", "the dog"] | Generated sentence contains "the" at start | Sentence starts with seed word |
+| TC-G1b | Fixed seed; run twice | Same sentence generated both times | Reproducibility (deterministic) |
+| TC-G1c | Word pair ("the", "cat"): count=90, ("the", "dog"): count=10 | "the cat" appears ~9x more often than "the dog" | Probability weighted |
+| TC-G1d | Seed word not in corpus | Error or graceful fallback | Invalid seed handled |
+| TC-G1e | Empty corpus | Error | No words to generate |
+
+#### TC-G2: Second Generation Algorithm (e.g., most-frequent next word)
+
+| Test Case | Setup | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-G2a | Start "the"; most-frequent successor is "cat" | Generated sentence has "the cat" | Most-frequent strategy works |
+| TC-G2b | Run multiple times | Same sentence every time (deterministic) | Reproducibility |
+
+#### TC-G3: Additional Algorithm (e.g., top-k random)
+
+| Test Case | Setup | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-G3a | Start "the"; top-3 next words by frequency | Sentence picks from top 3 | Top-k selection works |
+| TC-G3b | k=1 (same as most-frequent) | Same output as TC-G2a | Boundary case |
+
+#### TC-G4: Low-Probability Words
+
+| Test Case | Setup | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-G4a | Word pair ("hello", "world"): count=1 out of 100 successors | Over 1000 sentences, "hello world" appears at least once | Low-probability words show up |
+
+**Exit Criteria:** All generators tested; low-probability words verified over bulk run.
+
+---
+
+### 2.5 Auto-Complete Module
+
+**Owner:** Alicia Nea  
+**Test Framework:** JUnit 5
+
+| Test Case | User Input | Expected | Pass Criteria |
+|-----------|------------|----------|---------------|
+| TC-A1 | "the " (space after "the") | List of words that follow "the" | Suggestions appear after space |
+| TC-A2 | "the," (comma after "the") | Same as TC-A1 | Comma triggers suggestions |
+| TC-A3 | "the." (period after "the") | Same as TC-A1 | Period triggers suggestions |
+| TC-A4 | "the" (no space) | No suggestions | No suggestions mid-word |
+| TC-A5 | User types "xyz" (not in DB) and presses space | "xyz" added to word list; count=0 for next word | Unknown word inserted |
+| TC-A6 | User selects suggestion "cat" from "the \_" list | ("the", "cat") count incremented | Selection count updated |
+| TC-A7 | User selects "cat" again | Count increments again (now 2) | Increments on repeat |
+
+**Exit Criteria:** All auto-complete flows verified.
+
+---
+
