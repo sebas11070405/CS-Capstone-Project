@@ -177,3 +177,27 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+## 4. System Testing (Full Checklist)
+
+**Owner:** Ujjwal Gupta  
+**Timing:** Weeks 9–11  
+**Data:** Full Gutenberg novel (Jane Austen or equivalent)
+
+| Requirement | Test Method | Pass Criteria |
+|-------------|-------------|---------------|
+| At least two generation algorithms implemented | Run each algorithm; inspect output | Both produce different, valid sentences |
+| Low-probability words appear occasionally | Generate 1000+ sentences; count rare-pair occurrences | Rare pairs appear 5–10+ times |
+| Self-feeding loop adds generated sentences to corpus | Generate, import output, re-generate, check DB | Sentences in DB; corpus grows |
+| Auto-complete offers choices after space/period/comma | Type "word " and check UI | Suggestions popup within 100ms |
+| Auto-complete adds unknown words | Type unknown word + space; query DB | Word appears in word table |
+| Auto-complete increments count for chosen words | Select suggestion twice; query DB | Count goes 0 → 1 → 2 |
+| Words can be viewed and edited | Word browser; edit a word's count; save | Edit persists in DB |
+| Reports sort by frequency, alphabetic, other orders | Reports screen; toggle sort order | Display updates correctly |
+| Reports show duplicate generated sentences | Reports screen; filter for duplicates | Duplicates flagged or highlighted |
+| Import shows progress indicator | Import large file; observe UI | Progress bar fills smoothly (no freeze) |
+| Application builds and runs fresh | Fresh clone from GitHub; follow README | `./gradlew build` succeeds; app launches |
+
+**Pass Criteria:** All 11 items pass. No critical or major defects.
+
+---
+
