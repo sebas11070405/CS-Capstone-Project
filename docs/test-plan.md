@@ -201,3 +201,37 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+## 5. Regression Testing
+
+### 5.1 Unit Test Suite
+
+**Trigger:** Before every PR merge into `main`; before `rc-1` tag.  
+**Command:** `./gradlew test`  
+**Pass Criteria:** All tests pass; new code includes tests.
+
+### 5.2 Integration Smoke Test
+
+**Trigger:** Before `rc-1` tag (Week 11).  
+**Steps:**
+1. Fresh clone.
+2. `./gradlew build` succeeds.
+3. Import small test file.
+4. Generate one sentence.
+5. View reports.
+
+**Pass Criteria:** All steps complete without errors.
+
+---
+
+## 6. Defect Tracking
+
+**Tool:** GitHub Issues  
+**Labels:** 
+- `critical` – Blocks generation, import, or demo
+- `major` – Feature broken but workaround exists
+- `minor` – UI polish, edge case
+
+**Exit Criteria:** No open `critical` or `major` issues at M6 (Week 11, `rc-1`).
+
+---
+
