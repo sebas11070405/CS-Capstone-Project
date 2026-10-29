@@ -18,20 +18,17 @@ from office hours if your code has no comments.
 ## 1. File Headers (required in every file)
 
 Every file starts with a header, before `package` in Java or the first statement in SQL, followed by
-one blank line. The header must include:
+one blank line. The header includes:
 
-1. **Title:** the project name and what this module is
-2. **Description:** what the module does, how it's used, and what it needs (files, `.env` keys, tables).
-   Include enough detail that someone could use the module from the header alone.
-3. **AI disclosure:** required if AI helped write any code in the file. Name the tool and paste every
-   prompt word for word.
+1. **Description (required):** what the module does, how it's used, and what it needs (files, `.env`
+   keys, tables). Include enough detail that someone could use the module from the header alone.
+2. **AI disclosure (optional):** the author decides whether to include it, though a reviewer may ask
+   for it. If you include it, name the tool and paste every prompt word for word.
 
 ### Java
 
 ```java
 /*
- * Sentence Builder: Importer.
- *
  * Reads a text file, tokenizes it into sentences, and adds the word, bigram,
  * and trigram counts to the database in one transaction. If the same text has
  * already been imported, it throws DuplicateImportException instead of
@@ -52,20 +49,20 @@ package com.sentencebuilder.importer;
 ```
 
 - Use `/* */` with ` * ` at the start of each line. Don't use `/** */` for headers.
-- Leave out the name, NetID, and start date line the standard asks for. Git history records who wrote
-  what.
-- Leave out the `AI-assisted` section only if no AI was used in the file.
+- Leave out the title and the name, NetID, and start date line the standard asks for. The file name
+  says what the module is, and git history records who wrote what.
+- Without an AI disclosure, the header is just the description.
 - If several files came from one prompt, put the full prompt in the main file. The others point to it:
   `Prompt: see src/main/java/tokenizer/Tokenizer.java`.
 
 ### SQL
 
-Same fields, using `/* */` without the leading ` * `. Say in the description if the script deletes data.
+Same parts, using `/* */` without the leading ` * `. Say in the description if the script deletes data.
 
 ### FXML
 
 The XML declaration has to stay on the first line, so put the header right after it inside `<!-- -->`
-with the same fields.
+with the same parts.
 
 ## 2. Method Comments (required)
 
@@ -114,6 +111,7 @@ content_hash CHAR(64),        -- SHA-256 of the tokenized words
 - Names must mean something and be easy to find with a text search. Don't use single-letter names like
   `i` or `j`. Use at least `ix`, or names like `iWord` and `iSentence`.
 - An enhanced `for` loop variable should name the item: `for (String word : words)`.
+- The one exception is `e` for the exception in a `catch` block.
 - Good names don't replace the required method and section comments.
 
 ## 6. Program Structure
