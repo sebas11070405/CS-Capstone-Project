@@ -1,8 +1,12 @@
 /*
-Unit tests for Tokenizer. The prompts used are in src/main/java/tokenizer/Tokenizer.java.
-
-Run from the repository root with ./gradlew test (or .\gradlew.bat test on Windows).
-*/
+ * Unit tests for word normalization, sentence splitting, and normalizeWord.
+ * They need no database. Run them from the repository root with ./gradlew test
+ * (or .\gradlew.bat test on Windows).
+ *
+ * AI-assisted: Claude Code
+ *
+ * Prompt: see src/main/java/tokenizer/Tokenizer.java
+ */
 
 package tokenizer;
 
@@ -68,7 +72,7 @@ class TokenizerTest {
 
     @Test
     void removesAccents() {
-        assertEquals(List.of("cafe", "cafe", "naive", "elan"), words("café cafe\u0301 naïve Élan"));   // second is a decomposed accent
+        assertEquals(List.of("cafe", "cafe", "naive", "elan"), words("café cafe\u0301 naïve Élan"));   // The second is a decomposed accent
     }
 
     @Test
@@ -88,7 +92,7 @@ class TokenizerTest {
         assertEquals(List.of(List.of("lived", "at", "baker", "street")), sentences("Lived at 221B Baker Street."));
         assertEquals(List.of(List.of("the", "of", "may")), sentences("The 1st of May."));
         assertEquals(List.of(List.of("in", "the", "early")), sentences("In the early ’60’s."));
-        assertEquals(List.of(List.of("in", "he", "came")), sentences("In hello𝟎 he came."));   // digit outside the BMP
+        assertEquals(List.of(List.of("in", "he", "came")), sentences("In hello𝟎 he came."));   // Digit outside the BMP
     }
 
     @Test
@@ -167,7 +171,7 @@ class TokenizerTest {
         assertEquals("well-known", Tokenizer.normalizeWord("Well-Known"));
         assertEquals("cafe", Tokenizer.normalizeWord("Café"));
         assertEquals("strasse", Tokenizer.normalizeWord("STRAẞE"));
-        assertEquals("zyzzyva", Tokenizer.normalizeWord("Zyzzyva"));   // need not exist in the database
+        assertEquals("zyzzyva", Tokenizer.normalizeWord("Zyzzyva"));   // Doesn't need to exist in the database
     }
 
     @Test
@@ -187,7 +191,7 @@ class TokenizerTest {
         assertNull(Tokenizer.normalizeWord("da да"));
         assertNull(Tokenizer.normalizeWord("1891"));
         assertNull(Tokenizer.normalizeWord("221B"));
-        assertNull(Tokenizer.normalizeWord("hello𝟎"));   // a digit outside the BMP, stored as two chars
+        assertNull(Tokenizer.normalizeWord("hello𝟎"));   // A digit outside the BMP, stored as two chars
         assertNull(Tokenizer.normalizeWord("b".repeat(101)));
         assertEquals("a".repeat(100), Tokenizer.normalizeWord("a".repeat(100)));
     }
