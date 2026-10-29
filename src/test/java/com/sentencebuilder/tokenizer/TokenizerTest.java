@@ -5,10 +5,10 @@
  *
  * AI-assisted: Claude Code
  *
- * Prompt: see src/main/java/tokenizer/Tokenizer.java
+ * Prompt: see src/main/java/com/sentencebuilder/tokenizer/Tokenizer.java
  */
 
-package tokenizer;
+package com.sentencebuilder.tokenizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;

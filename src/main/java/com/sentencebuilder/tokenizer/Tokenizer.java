@@ -62,7 +62,7 @@
  * "cafe\u0301" for the decomposed case, and add a regression test. Keep everything else unchanged.
  */
 
-package tokenizer;
+package com.sentencebuilder.tokenizer;
 
 import java.io.BufferedReader;
 import java.io.IOException;

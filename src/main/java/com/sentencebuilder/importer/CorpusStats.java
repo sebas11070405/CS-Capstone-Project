@@ -11,7 +11,7 @@
 
 package com.sentencebuilder.importer;
 
-import tokenizer.Tokenizer;
+import com.sentencebuilder.tokenizer.Tokenizer;
 
 import java.io.IOException;
 import java.io.Reader;

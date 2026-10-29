@@ -53,7 +53,7 @@ package com.sentencebuilder.importer;
   says what the module is, and git history records who wrote what.
 - Without an AI disclosure, the header is just the description.
 - If several files came from one prompt, put the full prompt in the main file. The others point to it:
-  `Prompt: see src/main/java/tokenizer/Tokenizer.java`.
+  `Prompt: see src/main/java/com/sentencebuilder/tokenizer/Tokenizer.java`.
 
 ### SQL
 
