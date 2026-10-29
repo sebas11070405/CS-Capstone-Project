@@ -1,3 +1,9 @@
+/*
+ * Checks that the credentials in .env can connect to Supabase. It needs a
+ * valid .env and network access, so it fails without them. Run it with
+ * ./gradlew test.
+ */
+
 package com.sentencebuilder.database;
 
 import org.junit.jupiter.api.Test;
@@ -11,7 +17,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseTest {
 
-    // Requires a valid .env; checks that Supabase accepts the credentials
     @Test
     void connectsToSupabase() throws Exception {
         try (Connection conn = Database.getConnection();

@@ -1,5 +1,13 @@
-/* 
-Prompt used:
+/*
+Creates every table and index the app uses: source_files for imported files
+and generated batches, words for per-word counts, bigrams and trigrams for
+which words follow which, and generated_sentences for the duplicates report.
+It has already been run on the shared Supabase database. Running it again
+fails because the tables exist. Use reset.sql to clear the data instead.
+
+AI-assisted: TODO(Sebastian): name the tool used for the prompt below
+
+Prompt:
 I'm the database architect on a Java/JavaFX sentence-generator project using
 PostgreSQL on Supabase. Review the attached assignment and my schema.sql below.
 Fix problems, add needed indexes and integrity constraints, keep existing names,
@@ -15,8 +23,15 @@ CREATE TABLE source_files
     source_type  VARCHAR(20)  NOT NULL DEFAULT 'file'
                               CHECK (source_type IN ('file', 'generated')),
     word_count   INT          NOT NULL DEFAULT 0 CHECK (word_count >= 0),
-    imported_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+    imported_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    content_hash CHAR(64),                          -- SHA-256 of the tokenized words
+    CHECK (source_type <> 'file' OR content_hash IS NOT NULL)
 );
+
+-- Generated batches may repeat; the same file may not.
+CREATE UNIQUE INDEX ux_source_files_hash
+    ON source_files (content_hash)
+    WHERE source_type = 'file';
 
 -- Each distinct word and how often it appears overall, at the start, and at the end of a sentence.
 CREATE TABLE words

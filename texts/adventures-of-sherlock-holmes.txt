@@ -1,31 +1,3 @@
-The Adventures of Sherlock Holmes
-
-by Arthur Conan Doyle
-
-
-Contents
-
-   I.     A Scandal in Bohemia
-   II.    The Red-Headed League
-   III.   A Case of Identity
-   IV.    The Boscombe Valley Mystery
-   V.     The Five Orange Pips
-   VI.    The Man with the Twisted Lip
-   VII.   The Adventure of the Blue Carbuncle
-   VIII.  The Adventure of the Speckled Band
-   IX.    The Adventure of the Engineer’s Thumb
-   X.     The Adventure of the Noble Bachelor
-   XI.    The Adventure of the Beryl Coronet
-   XII.   The Adventure of the Copper Beeches
-
-
-
-
-I. A SCANDAL IN BOHEMIA
-
-
-I.
-
 To Sherlock Holmes she is always _the_ woman. I have seldom heard him
 mention her under any other name. In his eyes she eclipses and
 predominates the whole of her sex. It was not that he felt any emotion
@@ -487,7 +459,6 @@ good enough to call to-morrow afternoon at three o’clock I should like
 to chat this little matter over with you.”
 
 
-II.
 
 At three o’clock precisely I was at Baker Street, but Holmes had not
 yet returned. The landlady informed me that he had left the house
@@ -940,7 +911,6 @@ appeared to come from a slim youth in an ulster who had hurried by.
 street. “Now, I wonder who the deuce that could have been.”
 
 
-III.
 
 I slept at Baker Street that night, and we were engaged upon our toast
 and coffee in the morning when the King of Bohemia rushed into the
@@ -1101,7 +1071,6 @@ title of _the_ woman.
 
 
 
-II. THE RED-HEADED LEAGUE
 
 
  I had called upon my friend, Mr. Sherlock Holmes, one day in the
@@ -2137,7 +2106,6 @@ as Gustave Flaubert wrote to George Sand.”
 
 
 
-III. A CASE OF IDENTITY
 
 
 “My dear fellow,” said Sherlock Holmes as we sat on either side of the
@@ -2888,7 +2856,6 @@ much sense in Hafiz as in Horace, and as much knowledge of the world.”
 
 
 
-IV. THE BOSCOMBE VALLEY MYSTERY
 
 
 We were seated at breakfast one morning, my wife and I, when the maid
@@ -3942,7 +3909,6 @@ black cloud which rests upon their past.
 
 
 
-V. THE FIVE ORANGE PIPS
 
 
 When I glance over my notes and records of the Sherlock Holmes cases
@@ -4779,7 +4745,6 @@ Star_.
 
 
 
-VI. THE MAN WITH THE TWISTED LIP
 
 
 Isa Whitney, brother of the late Elias Whitney, D.D., Principal of the
@@ -5821,7 +5786,6 @@ Street we shall just be in time for breakfast.”
 
 
 
-VII. THE ADVENTURE OF THE BLUE CARBUNCLE
 
 
 I had called upon my friend Sherlock Holmes upon the second morning
@@ -6749,7 +6713,6 @@ feature.”
 
 
 
-VIII. THE ADVENTURE OF THE SPECKLED BAND
 
 
 On glancing over my notes of the seventy odd cases in which I have
@@ -7888,7 +7851,6 @@ conscience.”
 
 
 
-IX. THE ADVENTURE OF THE ENGINEER’S THUMB
 
 
 Of all the problems which have been submitted to my friend, Mr.
@@ -8797,7 +8759,6 @@ being excellent company for the remainder of your existence.”
 
 
 
-X. THE ADVENTURE OF THE NOBLE BACHELOR
 
 
 The Lord St. Simon marriage, and its curious termination, have long
@@ -9774,7 +9735,6 @@ to solve is how to while away these bleak autumnal evenings.”
 
 
 
-XI. THE ADVENTURE OF THE BERYL CORONET
 
 
 “Holmes,” said I as I stood one morning in our bow-window looking down
@@ -10840,7 +10800,6 @@ punishment.”
 
 
 
-XII. THE ADVENTURE OF THE COPPER BEECHES
 
 
 “To the man who loves art for its own sake,” remarked Sherlock Holmes,
