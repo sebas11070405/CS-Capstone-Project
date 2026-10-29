@@ -140,3 +140,40 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+## 3. Integration Testing
+
+### 3.1 Mid-Project Demo (Week 6)
+
+**Scope:** Database schema, import module, Markov generation, basic UI  
+**Data:** Small text file (100–500 words from Sherlock Holmes excerpt)
+
+| Test Case | Steps | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-Int1 | 1. Fresh DB. 2. Import text file. 3. Check word counts in DB. | Word counts match tokenizer output | Import end-to-end works |
+| TC-Int2 | 1. Query DB for top 10 words. 2. Display on UI. | Top 10 words shown sorted by frequency | UI displays data |
+| TC-Int3 | 1. Select start word "the". 2. Click "Generate". 3. Observe sentence. | Sentence generated, contains "the" at start | Generation UI works |
+| TC-Int4 | 1. Generate 10 sentences. 2. Check that at least one is unique. | Sentences vary (not all identical) | Generation varies |
+
+**Pass Criteria:** All four tests pass. Fresh clone builds and runs via README instructions. Tag: `demo-v1`.
+
+---
+
+### 3.2 Full System Integration (Weeks 9–11)
+
+**Scope:** All features, full Gutenberg novel (50K–100K words)  
+**Data:** Jane Austen novel or equivalent, cleaned
+
+| Test Case | Steps | Expected | Pass Criteria |
+|-----------|-------|----------|---------------|
+| TC-Int5 | 1. Import novel. 2. Generate 100 sentences with Markov. 3. Generate 100 with Algorithm 2. | Both algorithms produce sentences | All generators work at scale |
+| TC-Int6 | 1. Inspect word-pair counts in DB. 2. Generate 1000 sentences with Markov. 3. Check histogram of output. | Low-frequency pairs appear occasionally (e.g., 5–10 times in 1000) | Low-probability sampling works |
+| TC-Int7 | 1. Generate 10 sentences. 2. Click "Add to Corpus". 3. Import them. 4. Query DB for sentence table. | Sentences visible in DB. Import progress shown. | Self-feeding loop works |
+| TC-Int8 | 1. On auto-complete screen, type "the ". 2. Select "cat" from suggestions. 3. Generate. 4. Type "and " and select again. | Sentences use chosen words. Selection counts in DB increment. | Auto-complete + generation interaction works |
+| TC-Int9 | 1. Word browser screen. 2. View all words, sorted by frequency. 3. Click a word, edit its count. 4. Save. 5. Re-query DB. | Edit persists in DB. | Word editing works |
+| TC-Int10 | 1. Reports screen. 2. Sort words by frequency (desc). 3. Filter by min count (10+). | Report shows filtered/sorted list. | Report filtering + sorting works |
+| TC-Int11 | 1. Reports screen. 2. View generated-sentence history. 3. Check for duplicates. | Duplicate sentences flagged or counted. | Duplicate detection works |
+
+**Pass Criteria:** All tests pass. No open critical or major defects. Tag: `rc-1` (release candidate).
+
+---
+
