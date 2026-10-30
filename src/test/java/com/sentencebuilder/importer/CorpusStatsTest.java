@@ -6,6 +6,7 @@
 package com.sentencebuilder.importer;
 
 import org.junit.jupiter.api.Test;
+import java.util.List;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -71,5 +72,35 @@ class CorpusStatsTest {
         CorpusStats stats = stats("");
         assertEquals(0, stats.words().size());
         assertEquals(0, stats.wordCount());
+    }
+
+    /*
+    AI-Assisted: Claude Sonnet 5.5
+
+    Prompt used:
+    Add JUnit 5 tests for the new implementation of bigram and trigram counts in CorpusStatsTest, using the same 
+    approach as the other tests. Use at least three-word and two-word sentences to show that pairs and triples do 
+    not span sentence boundaries. Name each test based on the behavior it is testing.
+    */ 
+    @Test
+    void countsBigramsAndTrigramsWithinASentence()
+    {
+        CorpusStats stats = new CorpusStats();
+        stats.addSentence(List.of("the", "cat", "sat"));
+
+        assertEquals(2, stats.bigrams().size());
+        assertEquals(1, stats.trigrams().size());
+        assertEquals(1, stats.bigrams().get(new CorpusStats.Bigram("the", "cat")));
+        assertEquals(1, stats.trigrams().get(new CorpusStats.Trigram("the", "cat", "sat")));
+    }
+
+    @Test
+    void pairsDoNotCrossSentenceBoundaries() {
+        CorpusStats stats = new CorpusStats();
+        stats.addSentence(List.of("the", "cat"));
+        stats.addSentence(List.of("sat", "down"));
+
+        assertEquals(2, stats.bigrams().size());
+        assertEquals(0, stats.trigrams().size());
     }
 }
