@@ -7,23 +7,45 @@ import java.util.List;
 import java.util.Random;
 
 /**
+ * Generates sentences using a Markov chain-based word generation strategy.
  *
- * This class generates sentences using a Markov chain generation strategy.
- * It extends the AbstractGenerator class and inherits the common functionality for generating sentences.
+ * This algorithm predicts the next word based on the current word
+ * and the frequency of its possible transitions.
+ *
+ * Each possible next word has a probability of being selected
+ * proportional to its frequency of occurrence in the training corpus.
+ * Words with higher frequencies are more likely to be selected,
+ * but less frequent words still have a chance of being chosen.
+ *
+ * Word transitions are retrieved through the TransitionRepository
+ * interface, allowing the generator to work with either test data
+ * or transitions stored in a PostgreSQL database.
+ *
+ * @see AbstractGenerator
+ * @see TransitionRepository
+ * @see WordTransition
  */
 
 public class MarkovGenerator extends AbstractGenerator {
 
-    // Necessary fields for Markov: The repository for retrieving word transitions, 
-    // a random number generator for selecting the next word, and the starting word for the sentence generation.
+   /** Repository used to retrieve possible next-word transitions. */
     private final TransitionRepository repo;
+
+    /** Random number generator used for weighted word selection */
     private final Random random;
+
+    /** Initial word to begin sentence generation */
     private final String startWord;
 
-    // Constructor for MarkovGenerator, takes in the max sentence length, the transition repository, 
-    // the starting word, and a random number generator.
+    /**
+     * Constructs a MarkovGenerator with the specified maximum length, transition repository, and starting word.
+     *
+     * @param maxWords maximum number of words allowed in the generated sentence
+     * @param repo repository containing word transitions and their frequencies
+     * @param startWord initial word used to begin sentence generation
+     */
     public MarkovGenerator(int maxWords, TransitionRepository repo, String startWord) {
-        // Pass maxWords to AbstractGenerator.
+      
         super(maxWords);
         
         this.repo = repo;
@@ -31,39 +53,47 @@ public class MarkovGenerator extends AbstractGenerator {
         this.startWord = startWord;
     }
 
-    // Implementation of the generate method from the Generator interface
+     /**
+     * Generates a sentence using probability-weighted word transitions.
+     * 
+     * The algorithm begins with the starting word and retrieves its possible next-word transitions from the repository.
+     * A next word is randomly selected based on the frequency distribution of the available transitions.
+     * 
+     * The selected word is appended to the sentence and becomes the current word for the next iteration.
+     * 
+     * @return generated sentence containing up to maxWords words
+     */
     @Override
     public String generateSentence() {
 
         StringBuilder sentenceBuilder = new StringBuilder(startWord);
         
-        // Take the starting word
         String currentWord = startWord;
 
-        // Generate words until we reach the max sentence length (maxWords)
+        /** Generate words until the maximum word count is reached */
         for (int i = 1; i < maxWords; i++) {
             
-            // Retrieve the list of possible transitions for the current word
-            // WordTransition is a model class that holds the next word and its frequency.
+            /** Retrieve possible next words and their frequencies */
             List<WordTransition> transitions = repo.getTransitions(currentWord);
 
             System.out.println("Current word: " + currentWord);
 
-            if (transitions.isEmpty()) {
+            /** Stop generation if no transitions are available */
+            if (transitions == null || transitions.isEmpty()) {
                 break; // No transitions available. Stop
             }
-            // Else: Select the next word based on the frequencies
+            /** Select the next word using weighted random selection */
             String nextWord = selectNextWord(transitions);
 
-            System.out.println("Selected next word: " + nextWord);
-            
+            /** Stop generation if no valid next word is selected */
             if (nextWord == null) {
-                break; // No valid next word found
+                break;
             }
-            // Update/append the sentence with the selected next word
+            
+            /** Append selected word to the sentence */
             sentenceBuilder.append(" ").append(nextWord);
 
-            // Move to the next word for the next iteration
+            /** Use the selected word as the context for the next prediction */
             currentWord = nextWord;
         }
 
@@ -71,29 +101,50 @@ public class MarkovGenerator extends AbstractGenerator {
         
 }
 
-// AI Prompt: Write a selectNextWord() method that selects the next word from a list of word transitions using weighted
-// random selection based on each word's frequency.
-
-// Method to decide which word comes next based on the list of transitions.
+ /**
+ * Selects the next word using weighted random selection.
+ *
+ * Each transition contains a candidate next word and its
+ * frequency of occurrence. The probability of selecting a
+ * particular word is calculated as:
+ *
+ * <pre>
+ * P(nextWord) = frequency(nextWord) / totalFrequency
+ * </pre>
+ *
+ * The method first calculates the total frequency of all
+ * available transitions. It then generates a random integer
+ * within that range and uses cumulative frequencies to determine
+ * which word is selected.
+ *
+ * Higher-frequency transitions occupy larger portions of
+ * the selection range, making them more likely to be chosen.
+ * 
+ * AI Prompt: Write a selectNextWord() method that selects the next word from a list of 
+ * word transitions using weighted random selection based on each word's frequency.
+ *
+ * @param transitions list of possible next-word transitions and their corresponding frequencies
+ * @return a randomly selected next word based on transition frequencies, or null if no valid transition exists
+ */
 private String selectNextWord(List<WordTransition> transitions) {
 
-        // calculate total frequency to determine the probability distribution.
+        /** Calculate sum of all transition frequencies */
         int totalFrequency = 0;
 
         for (WordTransition transition : transitions) {
             totalFrequency += transition.getFrequency();
         }
 
+        /** Stop if no valid frequencies */
         if (totalFrequency == 0) {
-            return null; // No valid transitions
+            return null; 
         }
 
-        // Generate a random value to select the next word
-        // Probability of selecting a word is proportional to its frequency
-        // Implement the ranges according to the frequencies.
+        /** Generate a random value between 0 and totalFrequency - 1 */
         int randomValue = random.nextInt(totalFrequency);
         int cumulativeFrequency = 0;
 
+        /** Find transition whose cumulative range contains randomValue */
         for (WordTransition transition : transitions) {
             cumulativeFrequency += transition.getFrequency();
 
@@ -104,7 +155,8 @@ private String selectNextWord(List<WordTransition> transitions) {
                 return transition.getNextWord();
             }
         }
-        return null; // Should not reach here if transitions are valid
+        /** Return null if no transition was selected */
+        return null; 
     }
 
 }
