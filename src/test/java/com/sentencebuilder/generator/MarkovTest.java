@@ -1,17 +1,32 @@
 package com.sentencebuilder.generator;
 
-import com.sentencebuilder.repository.FakeData;
+import com.sentencebuilder.repository.PostgresTransitionRepo;
+import com.sentencebuilder.repository.TransitionRepository;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Integration tests for the MarkovGenerator class.
+ *
+ * These tests verify that the Markov generator can generate
+ * sentences using word transitions retrieved from the PostgreSQL
+ * database and handle cases where no transitions are available.
+ *
+ * @see MarkovGenerator
+ * @see PostgresTransitionRepo
+ */
 public class MarkovTest {
 
+    /**
+     * Tests sentence generation using transitions from PostgreSQL.
+     * Verifies that the generated sentence is not null or empty.
+     */
     @Test
     public void testGetTransitions() {
-        FakeData fakeData = new FakeData();
+        TransitionRepository repo = new PostgresTransitionRepo();
 
-        MarkovGenerator generator = new MarkovGenerator(3, fakeData, "the");
+        MarkovGenerator generator = new MarkovGenerator(3, repo, "the");
 
 
             String sentence = generator.generateSentence();
@@ -24,15 +39,25 @@ public class MarkovTest {
 
     }
 
+    /**
+     * Tests sentence generation when no word transitions exist.
+     *
+     * Uses a starting word that is not expected to exist
+     * in the database. When no transitions are available,
+     * the generator should stop and return only the starting word.
+     *
+     * Verifies that the generator handles missing transitions
+     * without throwing an exception.
+     */
     @Test
     public void testNoTransitions() {
-        FakeData fakeData = new FakeData();
+        TransitionRepository repo = new PostgresTransitionRepo();
 
-        MarkovGenerator generator = new MarkovGenerator(5, fakeData, "Unknown");
+        MarkovGenerator generator = new MarkovGenerator(5, repo, "abcde");
 
         String sentence = generator.generateSentence();
 
-        assertEquals("Unknown", sentence);
+        assertEquals("abcde", sentence);
 
         System.out.println("Sentence: " + sentence);
     }
