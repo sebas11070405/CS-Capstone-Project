@@ -1,7 +1,10 @@
 /*
  * Handles the controls in main-view.fxml. Import Text File opens a file
  * chooser, imports the chosen .txt file into the database on a background
- * thread, and shows the word counts or the error in the status label.
+ * thread, and shows its progress in the progress bar and status label, then
+ * the word counts or the error.
+ *
+ * Prompt: see src/main/java/com/sentencebuilder/importer/Importer.java
  */
 
 package com.sentencebuilder.ui;
@@ -12,6 +15,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.stage.FileChooser;
 
 import java.io.File;
@@ -19,6 +23,9 @@ import java.io.File;
 public class MainController {
     @FXML
     private Button importButton;
+
+    @FXML
+    private ProgressBar progressBar;   // Shown only while an import runs
 
     @FXML
     private Label statusLabel;
@@ -42,27 +49,46 @@ public class MainController {
             return;
         }
 
-        // Import off the JavaFX thread so the window doesn't freeze on large files.
-        // The success and failure handlers run back on the JavaFX thread.
+        // Import off the JavaFX thread so the window doesn't freeze on large files. updateProgress and
+        // updateMessage are safe to call from that thread, and the success and failure handlers run
+        // back on the JavaFX thread.
         Task<CorpusStats> task = new Task<>() {
             @Override
             protected CorpusStats call() throws Exception {
-                return new Importer().importFile(file.toPath());
+                return new Importer().importFile(file.toPath(), (fraction, message) -> {
+                    updateProgress(fraction, 1);
+                    updateMessage(message);
+                });
             }
         };
         task.setOnSucceeded(event -> {
             CorpusStats stats = task.getValue();
-            statusLabel.setText(String.format("Imported %s: %,d words, %,d distinct",
-                    file.getName(), stats.wordCount(), stats.words().size()));
-            importButton.setDisable(false);
+            finishImport(String.format("Imported %s: %,d words, %,d distinct, %,d word pairs, %,d word triples",
+                    file.getName(), stats.wordCount(), stats.words().size(), stats.bigrams().size(),
+                    stats.trigrams().size()));
         });
-        task.setOnFailed(event -> {
-            statusLabel.setText("Import failed: " + task.getException().getMessage());
-            importButton.setDisable(false);
-        });
+        task.setOnFailed(event -> finishImport("Import failed: " + task.getException().getMessage()));
 
+        // Show the task's progress while it runs
         importButton.setDisable(true);
-        statusLabel.setText("Importing " + file.getName() + "…");
-        new Thread(task).start();
+        progressBar.progressProperty().bind(task.progressProperty());
+        progressBar.setVisible(true);
+        progressBar.setManaged(true);
+        statusLabel.textProperty().bind(task.messageProperty());
+
+        // A daemon thread doesn't keep the app running if the window is closed mid-import
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    /** Hides the progress bar, shows the final status, and lets the user import again. */
+    private void finishImport(String status) {
+        progressBar.progressProperty().unbind();
+        progressBar.setVisible(false);
+        progressBar.setManaged(false);
+        statusLabel.textProperty().unbind();
+        statusLabel.setText(status);
+        importButton.setDisable(false);
     }
 }

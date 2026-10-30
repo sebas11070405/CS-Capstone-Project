@@ -35,6 +35,15 @@ application {
     mainClass = "com.sentencebuilder.app.Main"
 }
 
+// One-time command for files imported before word pairs were counted. See BackfillPairs.java.
+tasks.register<JavaExec>("backfillPairs") {
+    classpath = sourceSets["main"].runtimeClasspath
+    mainModule = "com.sentencebuilder"
+    mainClass = "com.sentencebuilder.importer.BackfillPairs"
+    workingDir = rootDir
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
