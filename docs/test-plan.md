@@ -235,3 +235,36 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+## 7. Exit Criteria
+
+### For Mid-Project Demo (M4, Week 6)
+
+- [ ] Database schema baselined (`schema-v1` tag)
+- [ ] Import module works end-to-end
+- [ ] Markov generator produces sentences
+- [ ] Basic UI displays generation screen
+- [ ] All unit tests pass
+- [ ] Fresh clone builds and runs per README
+- [ ] Tag: `demo-v1`
+
+### For Release Candidate (M6, Week 11)
+
+- [ ] All features implemented and integrated
+- [ ] All unit tests pass
+- [ ] System test checklist (§4) passes
+- [ ] No open `critical` or `major` defects
+- [ ] Integration smoke test passes
+- [ ] Fresh clone builds and runs per README
+- [ ] Tag: `rc-1`
+
+### For Final Submission (Week 12)
+
+- [ ] All defects fixed
+- [ ] All tests pass
+- [ ] README and user guide complete
+- [ ] Code documented (Javadoc)
+- [ ] Fresh clone builds and runs per README
+- [ ] Tag: `v1.0`
+
+---
+
