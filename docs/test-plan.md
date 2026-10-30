@@ -268,3 +268,56 @@ This test plan outlines the strategy, scope, and exit criteria for testing the S
 
 ---
 
+## 8. Test Data
+
+### Unit Test Data
+
+- Small tokenizer inputs (< 10 words)
+- Schema script creates fresh test DB
+- Generator tests use fixed seed for reproducibility
+
+### Integration Test Data
+
+- **Mid-demo:** 100–500 words (Sherlock Holmes excerpt, `texts/adventures-of-sherlock-holmes.txt`)
+- **Full system:** 50K–100K words (Jane Austen novel from Project Gutenberg)
+
+---
+
+## 9. Metrics
+
+Tracked throughout development:
+
+- **Test pass rate:** % of unit tests passing (target: ≥95% before merge, 100% at RC)
+- **Code coverage:** % of production code covered by tests (target: ≥70%)
+- **Defect density:** Open defects per 1000 lines of code (target: <0.5 at RC)
+- **Defect escape rate:** Defects found in system test vs. unit test (target: <20% escape)
+
+---
+
+## 10. Test Resources
+
+| Resource | Owner | Available |
+|----------|-------|-----------|
+| Test database (MariaDB or PostgreSQL) | Sebastian | Setup in §3.1.4 |
+| Test text files | Ujjwal | `texts/` directory |
+| JUnit 5 framework | Gradle build | `build.gradle.kts` |
+| GitHub for issue tracking | All | Repository |
+| Excel timesheet | All | Shared in Teams |
+
+---
+
+## 11. Responsibilities
+
+| Role | Responsibility |
+|------|-----------------|
+| **Module Owners (Jerry, Alicia, Sebastian, Amey)** | Write unit tests for own modules; assist with integration testing |
+| **Ujjwal Gupta (QA Lead)** | Write and maintain test plan; run system test; manage defects; audits before milestones |
+| **All Members** | Code review includes test review; contribute to integration testing |
+
+---
+
+## Revision History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | Week 3 (Oct 2026) | Initial test plan |
