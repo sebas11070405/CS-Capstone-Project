@@ -1,0 +1,39 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Run tests (compile + unit tests, skip DB tests)
+      run: ./gradlew test -x integrationTest --console=plain
+      continue-on-error: false
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-report
+        path: build/reports/tests/test/
+
+    - name: Report test summary
+      if: always()
+      run: |
+        echo "Test Results Summary:"
+        find build/reports/tests/test -name "index.html" -exec cat {} \; | grep -o "counter\">[0-9]*" || echo "No test results found"
