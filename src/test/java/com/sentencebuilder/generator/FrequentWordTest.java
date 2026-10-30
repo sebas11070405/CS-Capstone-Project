@@ -1,17 +1,21 @@
 package com.sentencebuilder.generator;
 
 import com.sentencebuilder.repository.FakeData;
+import com.sentencebuilder.repository.PostgresTransitionRepo;
+import com.sentencebuilder.repository.TransitionRepository;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 
 public class FrequentWordTest {
 
     @Test
     public void testGetTransitions() {
-        FakeData fakeData = new FakeData();
+        TransitionRepository repo = new PostgresTransitionRepo();
 
-        FrequentWordGenerator generator = new FrequentWordGenerator(3, fakeData, "the");
+        FrequentWordGenerator generator = new FrequentWordGenerator(3, repo, "the");
 
 
         String sentence = generator.generateSentence();
@@ -25,13 +29,13 @@ public class FrequentWordTest {
 
     @Test
     public void testNoTransitions(){
-        FakeData fakeData = new FakeData();
+        TransitionRepository repo = new PostgresTransitionRepo();
 
-        FrequentWordGenerator generator = new FrequentWordGenerator(5, fakeData, "Unknown");
+        FrequentWordGenerator generator = new FrequentWordGenerator(5, repo, "abcde");
 
         String sentence = generator.generateSentence();
 
-        assertEquals("Unknown", sentence);
+        assertEquals("abcde", sentence);
 
         System.out.println("Sentence: " + sentence);
     }
