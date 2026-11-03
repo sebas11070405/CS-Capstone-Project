@@ -5,7 +5,7 @@ which words follow which, and generated_sentences for the duplicates report.
 It has already been run on the shared Supabase database. Running it again
 fails because the tables exist. Use reset.sql to clear the data instead.
 
-AI-assisted: TODO(Sebastian): name the tool used for the prompt below
+AI-assisted: Claude Sonnet 5.5
 
 Prompt:
 I'm the database architect on a Java/JavaFX sentence-generator project using

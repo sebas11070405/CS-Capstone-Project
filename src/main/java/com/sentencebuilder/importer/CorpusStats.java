@@ -1,8 +1,9 @@
 /*
  * Holds the counts the Importer writes to the database. For each normalized
  * word it records how often it appears in total, at the start of a sentence,
- * and at the end. It also tracks the total word count and a SHA-256 hash of
- * the tokenized text. The hash catches a repeat import of the same text, even
+ * and at the end. It also counts how often each pair and triple of consecutive
+ * words occurs, and tracks the total word count and a SHA-256 hash of the
+ * tokenized text. The hash catches a repeat import of the same text, even
  * when the formatting or file name is different.
  *
  * Build one with CorpusStats.from(reader), or create one and call addSentence
@@ -26,7 +27,15 @@ import java.util.Map;
 
 public class CorpusStats {
 
+    /** Two words in a row, in order. */
+    public record Bigram(String first, String second) {}
+
+    /** Three words in a row, in order. */
+    public record Trigram(String first, String second, String third) {}
+
     private final Map<String, WordCounts> words = new HashMap<>();   // Keyed by normalized word
+    private final Map<Bigram, Integer> bigrams = new HashMap<>();    // How often each word pair occurs
+    private final Map<Trigram, Integer> trigrams = new HashMap<>();  // How often each word triple occurs
     private final MessageDigest digest = newDigest();                // Grows with each sentence added
     private int wordCount;                                           // Every word, including repeats
 
@@ -53,6 +62,15 @@ public class CorpusStats {
         words.get(sentence.getLast()).end++;
         wordCount += sentence.size();
 
+        // Pairs and triples never cross a sentence boundary, because each call is one sentence
+        for (int ix = 0; ix + 1 < sentence.size(); ix++) {
+            bigrams.merge(new Bigram(sentence.get(ix), sentence.get(ix + 1)), 1, Integer::sum);
+            if (ix + 2 < sentence.size()) {
+                trigrams.merge(new Trigram(sentence.get(ix), sentence.get(ix + 1), sentence.get(ix + 2)),
+                        1, Integer::sum);
+            }
+        }
+
         // Words never contain spaces or newlines, so this encoding is unambiguous
         digest.update(String.join(" ", sentence).getBytes(StandardCharsets.UTF_8));
         digest.update((byte) '\n');
@@ -61,6 +79,16 @@ public class CorpusStats {
     /** Returns the counts for each normalized word. The map is read-only. */
     public Map<String, WordCounts> words() {
         return Collections.unmodifiableMap(words);
+    }
+
+    /** Returns how often each word pair occurs. The map is read-only. */
+    public Map<Bigram, Integer> bigrams() {
+        return Collections.unmodifiableMap(bigrams);
+    }
+
+    /** Returns how often each word triple occurs. The map is read-only. */
+    public Map<Trigram, Integer> trigrams() {
+        return Collections.unmodifiableMap(trigrams);
     }
 
     public int wordCount() {
@@ -105,4 +133,5 @@ public class CorpusStats {
             return end;
         }
     }
+
 }

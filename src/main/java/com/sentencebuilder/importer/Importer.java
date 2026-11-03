@@ -3,8 +3,7 @@
  * counts to the words table. The source_files row and the word counts are
  * written in one transaction, so a failed import leaves the database
  * unchanged. If the same text was imported before (matched by content hash),
- * it throws DuplicateImportException and writes nothing. Bigrams and trigrams
- * aren't written yet.
+ * it throws DuplicateImportException and writes nothing. The word, bigram, and trigram counts are all added to their tables.
  *
  * Needs DB_URL, DB_USER, and DB_PASSWORD in .env (see Database).
  */
@@ -57,6 +56,46 @@ public class Importer {
                 end_count   = words.end_count   + EXCLUDED.end_count
             """;
 
+    
+    /*
+    AI-Assisted: Claude Sonnet 5.5
+
+    Prompt used:
+    The following is our Importer.java, CorpusStats.java, and schema.sql.
+    Currently the importer writes only the words table. Do bulk upserts for the
+    bigrams and trigrams tables as part of one transaction with the same unnest array
+    style as word upserts. Look up the word IDs from words table, join on them, and
+    update the existing row in case of conflict so that a subsequent file will append
+    to the earlier file. Sort rows by ID so that concurrent imports will lock the
+    same way. Write words first as joins require those rows. Do not alter the
+    duplicates checking logic. Document every query and method as per
+    docs/comment-style.md. Update the header comment which still mentions
+    bigrams and trigrams have not been written out.
+    */
+    // Joins on words to turn each word into its id; ORDER BY keeps lock order consistent between imports
+    private static final String UPSERT_BIGRAMS = """
+            INSERT INTO bigrams (word_id, next_word_id, occurrences)
+            SELECT w1.word_id, w2.word_id, v.n
+            FROM unnest(?::text[], ?::text[], ?::int[]) AS v(a, b, n)
+            JOIN words w1 ON w1.word = v.a
+            JOIN words w2 ON w2.word = v.b
+            ORDER BY w1.word_id, w2.word_id
+            ON CONFLICT (word_id, next_word_id) DO UPDATE SET
+                occurrences = bigrams.occurrences + EXCLUDED.occurrences
+            """;
+
+    private static final String UPSERT_TRIGRAMS = """
+            INSERT INTO trigrams (word1_id, word2_id, next_word_id, occurrences)
+            SELECT w1.word_id, w2.word_id, w3.word_id, v.n
+            FROM unnest(?::text[], ?::text[], ?::text[], ?::int[]) AS v(a, b, c, n)
+            JOIN words w1 ON w1.word = v.a
+            JOIN words w2 ON w2.word = v.b
+            JOIN words w3 ON w3.word = v.c
+            ORDER BY w1.word_id, w2.word_id, w3.word_id
+            ON CONFLICT (word1_id, word2_id, next_word_id) DO UPDATE SET
+                occurrences = trigrams.occurrences + EXCLUDED.occurrences
+            """;
+
     /**
      * Imports a text file and returns its counts. Nothing is written if the text
      * was already imported or if any step fails.
@@ -90,7 +129,9 @@ public class Importer {
     static void write(Connection conn, String fileName, CorpusStats stats)
             throws SQLException, DuplicateImportException {
         insertSource(conn, fileName, stats);
-        writeWords(conn, stats);
+        writeWords(conn, stats);      // first, because the joins below need the word rows to exist
+        writeBigrams(conn, stats);
+        writeTrigrams(conn, stats);
     }
 
     /**
@@ -146,6 +187,67 @@ public class Importer {
             statement.setArray(2, conn.createArrayOf("int4", totals));
             statement.setArray(3, conn.createArrayOf("int4", starts));
             statement.setArray(4, conn.createArrayOf("int4", ends));
+            statement.executeUpdate();
+        }
+    }
+
+    /*
+    AI-Assisted: Claude Sonnet 5.5
+
+    Prompt used:
+    The following is our Importer.java, CorpusStats.java, and schema.sql.
+    Currently the importer writes only the words table. Do bulk upserts for the
+    bigrams and trigrams tables as part of one transaction with the same unnest array
+    style as word upserts. Look up the word IDs from words table, join on them, and
+    update the existing row in case of conflict so that a subsequent file will append
+    to the earlier file. Sort rows by ID so that concurrent imports will lock the
+    same way. Write words first as joins require those rows. Do not alter the
+    duplicates checking logic. Document every query and method as per
+    docs/comment-style.md. Update the header comment which still mentions
+    bigrams and trigrams have not been written out.
+    */
+
+        /** Adds every word pair's count to the bigrams table. */
+    static void writeBigrams(Connection conn, CorpusStats stats) throws SQLException {
+        int total = stats.bigrams().size();
+        String[] first = new String[total];
+        String[] second = new String[total];
+        Integer[] counts = new Integer[total];
+        int ix = 0;
+        for (var entry : stats.bigrams().entrySet()) {
+            first[ix] = entry.getKey().first();
+            second[ix] = entry.getKey().second();
+            counts[ix++] = entry.getValue();
+        }
+
+        try (PreparedStatement statement = conn.prepareStatement(UPSERT_BIGRAMS)) {
+            statement.setArray(1, conn.createArrayOf("text", first));
+            statement.setArray(2, conn.createArrayOf("text", second));
+            statement.setArray(3, conn.createArrayOf("int4", counts));
+            statement.executeUpdate();
+        }
+    }
+
+    /** Adds every word triple's count to the trigrams table. */
+    static void writeTrigrams(Connection conn, CorpusStats stats) throws SQLException {
+        int total = stats.trigrams().size();
+        String[] first = new String[total];
+        String[] second = new String[total];
+        String[] third = new String[total];
+        Integer[] counts = new Integer[total];
+        int ix = 0;
+        for (var entry : stats.trigrams().entrySet()) {
+            first[ix] = entry.getKey().first();
+            second[ix] = entry.getKey().second();
+            third[ix] = entry.getKey().third();
+            counts[ix++] = entry.getValue();
+        }
+
+        try (PreparedStatement statement = conn.prepareStatement(UPSERT_TRIGRAMS)) {
+            statement.setArray(1, conn.createArrayOf("text", first));
+            statement.setArray(2, conn.createArrayOf("text", second));
+            statement.setArray(3, conn.createArrayOf("text", third));
+            statement.setArray(4, conn.createArrayOf("int4", counts));
             statement.executeUpdate();
         }
     }
