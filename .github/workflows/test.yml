@@ -21,19 +21,5 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Run tests (compile + unit tests, skip DB tests)
-      run: ./gradlew test -x integrationTest --console=plain
-      continue-on-error: false
-
-    - name: Upload test results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-report
-        path: build/reports/tests/test/
-
-    - name: Report test summary
-      if: always()
-      run: |
-        echo "Test Results Summary:"
-        find build/reports/tests/test -name "index.html" -exec cat {} \; | grep -o "counter\">[0-9]*" || echo "No test results found"
+    - name: Run tests
+      run: ./gradlew test --console=plain

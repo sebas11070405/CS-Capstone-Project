@@ -2,6 +2,12 @@
 
 Run this checklist before tagging each milestone. Covers build, tests, and repo consistency.
 
+## Terminology
+
+- **M4** = Mid-Project Demo (Week 6, tag: `demo-v1`)
+- **M6** = Release Candidate (Week 11, tag: `rc-1`)
+- **v1.0** = Final Submission (Week 12, tag: `v1.0`)
+
 ---
 
 ## M4 – Mid-Project Demo (Week 6, demo-v1)
