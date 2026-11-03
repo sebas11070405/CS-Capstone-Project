@@ -1,15 +1,21 @@
 /*
- * Reads a UTF-8 text file, counts its words with CorpusStats, and adds the
- * counts to the words table. The source_files row and the word counts are
- * written in one transaction, so a failed import leaves the database
- * unchanged. If the same text was imported before (matched by content hash),
- * it throws DuplicateImportException and writes nothing. The word, bigram, and trigram counts are all added to their tables.
+ * Reads a UTF-8 text file, counts its words, word pairs, and word triples with
+ * CorpusStats, and adds those counts to the database. The source_files row and
+ * all the counts are written in one transaction, so a failed import leaves the
+ * database unchanged. If the same text was imported before (matched by content
+ * hash), it throws DuplicateImportException and writes nothing. The SQL itself
+ * lives in CorpusRepository.
  *
  * Needs DB_URL, DB_USER, and DB_PASSWORD in .env (see Database).
+ *
+ * AI-assisted: Claude Sonnet 5.5 (write order for bigrams and trigrams)
+ *
+ * Prompt: see src/main/java/com/sentencebuilder/database/CorpusRepository.java
  */
 
 package com.sentencebuilder.importer;
 
+import com.sentencebuilder.database.CorpusRepository;
 import com.sentencebuilder.database.Database;
 
 import java.io.IOException;
@@ -18,83 +24,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class Importer {
 
-    // DO NOTHING rather than an error keeps the transaction usable for looking up the earlier import
-    private static final String INSERT_SOURCE = """
-            INSERT INTO source_files (file_name, source_type, word_count, content_hash)
-            VALUES (?, 'file', ?, ?)
-            ON CONFLICT (content_hash) WHERE source_type = 'file' DO NOTHING
-            """;
-
-    // Finds the earlier import of the same text for the duplicate error message
-    private static final String FIND_SOURCE = """
-            SELECT file_name, imported_at FROM source_files
-            WHERE content_hash = ? AND source_type = 'file'
-            """;
-
     // For example, "Oct 28, 2026 at 7:15 PM"
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a");
-
-    // unnest turns the four arrays into rows, so every word is inserted or updated in one round trip
-    private static final String UPSERT_WORDS = """
-            INSERT INTO words (word, total_count, start_count, end_count)
-            SELECT * FROM unnest(?::text[], ?::int[], ?::int[], ?::int[])
-            ON CONFLICT (word) DO UPDATE SET
-                total_count = words.total_count + EXCLUDED.total_count,
-                start_count = words.start_count + EXCLUDED.start_count,
-                end_count   = words.end_count   + EXCLUDED.end_count
-            """;
-
-    
-    /*
-    AI-Assisted: Claude Sonnet 5.5
-
-    Prompt used:
-    The following is our Importer.java, CorpusStats.java, and schema.sql.
-    Currently the importer writes only the words table. Do bulk upserts for the
-    bigrams and trigrams tables as part of one transaction with the same unnest array
-    style as word upserts. Look up the word IDs from words table, join on them, and
-    update the existing row in case of conflict so that a subsequent file will append
-    to the earlier file. Sort rows by ID so that concurrent imports will lock the
-    same way. Write words first as joins require those rows. Do not alter the
-    duplicates checking logic. Document every query and method as per
-    docs/comment-style.md. Update the header comment which still mentions
-    bigrams and trigrams have not been written out.
-    */
-    // Joins on words to turn each word into its id; ORDER BY keeps lock order consistent between imports
-    private static final String UPSERT_BIGRAMS = """
-            INSERT INTO bigrams (word_id, next_word_id, occurrences)
-            SELECT w1.word_id, w2.word_id, v.n
-            FROM unnest(?::text[], ?::text[], ?::int[]) AS v(a, b, n)
-            JOIN words w1 ON w1.word = v.a
-            JOIN words w2 ON w2.word = v.b
-            ORDER BY w1.word_id, w2.word_id
-            ON CONFLICT (word_id, next_word_id) DO UPDATE SET
-                occurrences = bigrams.occurrences + EXCLUDED.occurrences
-            """;
-
-    private static final String UPSERT_TRIGRAMS = """
-            INSERT INTO trigrams (word1_id, word2_id, next_word_id, occurrences)
-            SELECT w1.word_id, w2.word_id, w3.word_id, v.n
-            FROM unnest(?::text[], ?::text[], ?::text[], ?::int[]) AS v(a, b, c, n)
-            JOIN words w1 ON w1.word = v.a
-            JOIN words w2 ON w2.word = v.b
-            JOIN words w3 ON w3.word = v.c
-            ORDER BY w1.word_id, w2.word_id, w3.word_id
-            ON CONFLICT (word1_id, word2_id, next_word_id) DO UPDATE SET
-                occurrences = trigrams.occurrences + EXCLUDED.occurrences
-            """;
 
     /**
      * Imports a text file and returns its counts. Nothing is written if the text
@@ -107,148 +44,44 @@ public class Importer {
             stats = CorpusStats.from(reader);
         }
 
-        // One transaction for everything, rolled back on any error so no partial import is left behind
-        try (Connection conn = Database.getConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                write(conn, file.getFileName().toString(), stats);
-                conn.commit();
-            } catch (Exception e) {
-                conn.rollback();
-                throw e;
-            }
-        }
-        return stats;
+        String fileName = file.getFileName().toString();
+        return Database.inTransaction(conn -> {
+            write(conn, fileName, stats);
+            return stats;
+        });
     }
 
     /**
-     * Writes the source_files row and the word counts on the given connection
-     * without committing. Package-private so ImporterTest can run it inside a
-     * transaction it rolls back.
+     * Writes the source_files row and the word, bigram, and trigram counts on the
+     * given connection without committing. Package-private so ImporterTest can
+     * run it inside a transaction it rolls back.
      */
     static void write(Connection conn, String fileName, CorpusStats stats)
             throws SQLException, DuplicateImportException {
-        insertSource(conn, fileName, stats);
-        writeWords(conn, stats);      // first, because the joins below need the word rows to exist
-        writeBigrams(conn, stats);
-        writeTrigrams(conn, stats);
+        CorpusRepository repository = new CorpusRepository(conn);
+
+        // Zero rows inserted means this text is already there, so name the earlier import and stop
+        if (!repository.insertSourceFile(fileName, stats.wordCount(), stats.contentHash())) {
+            throw duplicateOf(repository, stats.contentHash());
+        }
+
+        repository.addWordCounts(stats.words());   // First, because the n-gram queries look up word ids
+        repository.addBigramCounts(stats.bigrams());
+        repository.addTrigramCounts(stats.trigrams());
     }
 
     /**
-     * Records the file in source_files. If the same text was already imported,
-     * looks up that earlier import and throws DuplicateImportException naming it.
+     * Builds the error for a repeat import, naming the file the text was first
+     * imported as and when, in local time.
      */
-    private static void insertSource(Connection conn, String fileName, CorpusStats stats)
-            throws SQLException, DuplicateImportException {
-        try (PreparedStatement statement = conn.prepareStatement(INSERT_SOURCE)) {
-            statement.setString(1, fileName);
-            statement.setInt(2, stats.wordCount());
-            statement.setString(3, stats.contentHash());
-            // One row inserted means this text is new
-            if (statement.executeUpdate() == 1) {
-                return;
-            }
-        }
-
-        // Nothing was inserted, so the hash is already there. Find that import to name it in the error.
-        try (PreparedStatement statement = conn.prepareStatement(FIND_SOURCE)) {
-            statement.setString(1, stats.contentHash());
-            try (ResultSet rs = statement.executeQuery()) {
-                rs.next();
-                String importedAt = rs.getObject("imported_at", OffsetDateTime.class)
-                        .atZoneSameInstant(ZoneId.systemDefault())
-                        .format(DATE_FORMAT);
-                throw new DuplicateImportException(String.format("This text was already imported as %s on %s.",
-                        rs.getString("file_name"), importedAt));
-            }
-        }
-    }
-
-    /** Adds every word's counts to the words table, inserting words that are new. */
-    static void writeWords(Connection conn, CorpusStats stats) throws SQLException {
-        // Sorted so concurrent imports lock rows in the same order and can't deadlock
-        List<String> words = new ArrayList<>(stats.words().keySet());
-        Collections.sort(words);
-
-        // Build parallel arrays for UPSERT_WORDS: entry ix of each array belongs to words[ix]
-        int wordTotal = words.size();
-        Integer[] totals = new Integer[wordTotal];
-        Integer[] starts = new Integer[wordTotal];
-        Integer[] ends = new Integer[wordTotal];
-        for (int ix = 0; ix < wordTotal; ix++) {
-            CorpusStats.WordCounts counts = stats.words().get(words.get(ix));
-            totals[ix] = counts.total();
-            starts[ix] = counts.start();
-            ends[ix] = counts.end();
-        }
-
-        try (PreparedStatement statement = conn.prepareStatement(UPSERT_WORDS)) {
-            statement.setArray(1, conn.createArrayOf("text", words.toArray()));
-            statement.setArray(2, conn.createArrayOf("int4", totals));
-            statement.setArray(3, conn.createArrayOf("int4", starts));
-            statement.setArray(4, conn.createArrayOf("int4", ends));
-            statement.executeUpdate();
-        }
-    }
-
-    /*
-    AI-Assisted: Claude Sonnet 5.5
-
-    Prompt used:
-    The following is our Importer.java, CorpusStats.java, and schema.sql.
-    Currently the importer writes only the words table. Do bulk upserts for the
-    bigrams and trigrams tables as part of one transaction with the same unnest array
-    style as word upserts. Look up the word IDs from words table, join on them, and
-    update the existing row in case of conflict so that a subsequent file will append
-    to the earlier file. Sort rows by ID so that concurrent imports will lock the
-    same way. Write words first as joins require those rows. Do not alter the
-    duplicates checking logic. Document every query and method as per
-    docs/comment-style.md. Update the header comment which still mentions
-    bigrams and trigrams have not been written out.
-    */
-
-        /** Adds every word pair's count to the bigrams table. */
-    static void writeBigrams(Connection conn, CorpusStats stats) throws SQLException {
-        int total = stats.bigrams().size();
-        String[] first = new String[total];
-        String[] second = new String[total];
-        Integer[] counts = new Integer[total];
-        int ix = 0;
-        for (var entry : stats.bigrams().entrySet()) {
-            first[ix] = entry.getKey().first();
-            second[ix] = entry.getKey().second();
-            counts[ix++] = entry.getValue();
-        }
-
-        try (PreparedStatement statement = conn.prepareStatement(UPSERT_BIGRAMS)) {
-            statement.setArray(1, conn.createArrayOf("text", first));
-            statement.setArray(2, conn.createArrayOf("text", second));
-            statement.setArray(3, conn.createArrayOf("int4", counts));
-            statement.executeUpdate();
-        }
-    }
-
-    /** Adds every word triple's count to the trigrams table. */
-    static void writeTrigrams(Connection conn, CorpusStats stats) throws SQLException {
-        int total = stats.trigrams().size();
-        String[] first = new String[total];
-        String[] second = new String[total];
-        String[] third = new String[total];
-        Integer[] counts = new Integer[total];
-        int ix = 0;
-        for (var entry : stats.trigrams().entrySet()) {
-            first[ix] = entry.getKey().first();
-            second[ix] = entry.getKey().second();
-            third[ix] = entry.getKey().third();
-            counts[ix++] = entry.getValue();
-        }
-
-        try (PreparedStatement statement = conn.prepareStatement(UPSERT_TRIGRAMS)) {
-            statement.setArray(1, conn.createArrayOf("text", first));
-            statement.setArray(2, conn.createArrayOf("text", second));
-            statement.setArray(3, conn.createArrayOf("text", third));
-            statement.setArray(4, conn.createArrayOf("int4", counts));
-            statement.executeUpdate();
-        }
+    private static DuplicateImportException duplicateOf(CorpusRepository repository, String contentHash)
+            throws SQLException {
+        // The insert only skips when a row with this hash exists, so it can't be missing here
+        CorpusRepository.SourceFile earlier = repository.findSourceFile(contentHash).orElseThrow();
+        String importedAt = earlier.importedAt()
+                .atZoneSameInstant(ZoneId.systemDefault())
+                .format(DATE_FORMAT);
+        return new DuplicateImportException(String.format("This text was already imported as %s on %s.",
+                earlier.fileName(), importedAt));
     }
 }
