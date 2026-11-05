@@ -1,6 +1,11 @@
 /*
  * Checks the word, start, and end counts and the content hash for small
- * sample texts. They need no database. Run them with ./gradlew test.
+ * sample texts, and that a list of generated sentences is counted one
+ * sentence at a time. They need no database. Run them with ./gradlew test.
+ *
+ * AI-assisted: Claude Code (generated-sentence tests)
+ *
+ * Prompt: see src/main/java/com/sentencebuilder/importer/Importer.java
  */
 
 package com.sentencebuilder.importer;
@@ -102,5 +107,36 @@ class CorpusStatsTest {
 
         assertEquals(2, stats.bigrams().size());
         assertEquals(0, stats.trigrams().size());
+    }
+
+    @Test
+    void generatedSentencesAreCountedSeparately() {
+        // Neither string ends in punctuation, so only tokenizing them apart keeps "sat" from joining "the"
+        CorpusStats stats = CorpusStats.fromSentences(List.of("The cat sat", "the dog sat"));
+
+        assertCounts(stats, "the", 2, 2, 0);
+        assertCounts(stats, "sat", 2, 0, 2);
+        assertEquals(6, stats.wordCount());
+        assertEquals(4, stats.bigrams().size());
+        assertEquals(2, stats.trigrams().size());
+        assertFalse(stats.bigrams().containsKey(new CorpusStats.Bigram("sat", "the")));
+        assertFalse(stats.trigrams().containsKey(new CorpusStats.Trigram("cat", "sat", "the")));
+    }
+
+    @Test
+    void generatedSentencesCountLikeTheSameFileText() throws IOException {
+        CorpusStats generated = CorpusStats.fromSentences(List.of("The cat sat.", "The dog ran."));
+        CorpusStats file = stats("The cat sat. The dog ran.");
+
+        assertEquals(file.contentHash(), generated.contentHash());
+        assertEquals(file.bigrams(), generated.bigrams());
+        assertEquals(file.trigrams(), generated.trigrams());
+    }
+
+    @Test
+    void emptyGeneratedSentencesHaveNoWords() {
+        CorpusStats stats = CorpusStats.fromSentences(List.of("", "123 ..."));
+        assertEquals(0, stats.wordCount());
+        assertEquals(0, stats.bigrams().size());
     }
 }
