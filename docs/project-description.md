@@ -41,7 +41,7 @@ You will need a way to see and possibly modify information about the words in yo
 
 ### 5. Reporting
 
-Your user should be able to see a list of all words in the system and information about them. The normal sort order is alphabetic, but other sorts, such as occurrences, should be possible. Keep track of what sentences have been generated so your user can look for duplicates. Are there other reports that might be interesting? Would filtering help a user make sense of a large number of words?
+Your user should be able to see a list of all words in the system and information about them. The normal sort order is alphabetic, but other sorts, such as frequency, should be possible. Keep track of what sentences have been generated so your user can look for duplicates. Are there other reports that might be interesting? Would filtering help a user make sense of a large number of words?
 
 ## Design
 

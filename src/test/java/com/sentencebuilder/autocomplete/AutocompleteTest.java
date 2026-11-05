@@ -26,13 +26,13 @@ public class AutocompleteTest {
 
         int rank = 1;
         for (WordTransition transition : suggestions) {
-            int score = transition.getOccurrences()
+            int score = transition.getFrequency()
                     + transition.getUserSelected();
 
             System.out.printf("%d | %s | %d | %d | %d%n",
                     rank++,
                     transition.getNextWord(),
-                    transition.getOccurrences(),
+                    transition.getFrequency(),
                     transition.getUserSelected(),
                     score
             );

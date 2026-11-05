@@ -102,7 +102,7 @@ public class FrequentWordGenerator extends AbstractGenerator {
 
         /** Find transition with the highest frequency */
         for (WordTransition transition : transitions){
-            if(transition.getOccurrences() > mostFrequent.getOccurrences()){
+            if(transition.getFrequency() > mostFrequent.getFrequency()){
                 mostFrequent = transition;
             }
         }

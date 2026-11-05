@@ -45,7 +45,7 @@ public class FakeAutocompletRepo implements TransitionRepository {
             WordTransition transitions = existing.get(i);
 
             if(transitions.getNextWord().equals(nextWord)){
-                existing.set(i, new WordTransition(nextWord, transitions.getOccurrences(), transitions.getUserSelected() + 1));
+                existing.set(i, new WordTransition(nextWord, transitions.getFrequency(), transitions.getUserSelected() + 1));
 
                 return;
             }

@@ -57,7 +57,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
         List<WordTransition> transitions = new ArrayList<>();
 
         String sql = """
-                SELECT w2.word, b.occurrences, b.user_selected
+                SELECT w2.word, b.frequency, b.user_selected
                 FROM bigrams b
                 JOIN words w1 ON b.word_id = w1.word_id
                 JOIN words w2 ON b.next_word_id = w2.word_id
@@ -72,7 +72,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     String nextWord = rs.getString("word");
-                    int frequency = rs.getInt("occurrences");
+                    int frequency = rs.getInt("frequency");
                     int userSelected = rs.getInt("user_selected");
 
                     transitions.add(new WordTransition(nextWord, frequency, userSelected));
@@ -172,7 +172,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
                 INSERT INTO bigrams (
                     word_id,
                     next_word_id,
-                    occurrences,
+                    frequency,
                     user_selected
                 )
                 SELECT

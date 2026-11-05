@@ -55,7 +55,7 @@ public class Autocomplete {
          */
 
         return transitions.stream().sorted(Comparator.comparingLong(
-                (WordTransition t) -> (long) t.getOccurrences() + t.getUserSelected()).reversed()).limit(limit).toList();
+                (WordTransition t) -> (long) t.getFrequency() + t.getUserSelected()).reversed()).limit(limit).toList();
     }
 
     /**

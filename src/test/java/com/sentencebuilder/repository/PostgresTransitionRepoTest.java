@@ -23,7 +23,7 @@ public class PostgresTransitionRepoTest {
         for (WordTransition transition : transitions) {
             System.out.println(
                     transition.getNextWord() + ": " +
-                            transition.getOccurrences()
+                            transition.getFrequency()
             );
         }
     }

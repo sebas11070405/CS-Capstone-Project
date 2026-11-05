@@ -131,7 +131,7 @@ private String selectNextWord(List<WordTransition> transitions) {
         int totalFrequency = 0;
 
         for (WordTransition transition : transitions) {
-            totalFrequency += transition.getOccurrences();
+            totalFrequency += transition.getFrequency();
         }
 
         if (totalFrequency == 0) {
@@ -145,7 +145,7 @@ private String selectNextWord(List<WordTransition> transitions) {
         int cumulativeFrequency = 0;
 
         for (WordTransition transition : transitions) {
-            cumulativeFrequency += transition.getOccurrences();
+            cumulativeFrequency += transition.getFrequency();
 
 
             if (randomValue < cumulativeFrequency) {

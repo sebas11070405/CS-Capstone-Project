@@ -176,8 +176,8 @@ public class TrigramBackoffGenerator extends AbstractGenerator {
         int totalFrequency = 0;
 
         for(WordTransition transition : transitions){
-            if(transition.getOccurrences() > 0){
-                totalFrequency += transition.getOccurrences();
+            if(transition.getFrequency() > 0){
+                totalFrequency += transition.getFrequency();
             }
         }
 
@@ -194,11 +194,11 @@ public class TrigramBackoffGenerator extends AbstractGenerator {
         for (WordTransition transition : transitions){
 
             // Ignore any negative or 0 frequencies
-            if(transition.getOccurrences() <= 0){
+            if(transition.getFrequency() <= 0){
                 continue;
             }
 
-            cumulativeFrequency += transition.getOccurrences();
+            cumulativeFrequency += transition.getFrequency();
 
             if(randomValue < cumulativeFrequency){
                 return transition.getNextWord();

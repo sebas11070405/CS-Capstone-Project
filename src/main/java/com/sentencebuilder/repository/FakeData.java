@@ -65,7 +65,7 @@ public class FakeData implements TransitionRepository {
             transitions.put(nextWord, new WordTransition(nextWord, 0, 1));
         }
         else{
-            transitions.put(nextWord, new WordTransition(nextWord, existing.getOccurrences(), existing.getUserSelected() + 1));
+            transitions.put(nextWord, new WordTransition(nextWord, existing.getFrequency(), existing.getUserSelected() + 1));
         }
     }
 }

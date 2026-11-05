@@ -13,7 +13,7 @@ erDiagram
     bigrams {
         int word_id PK, FK
         int next_word_id PK, FK
-        int occurrences
+        int frequency
         int user_selected
     }
 
@@ -21,7 +21,7 @@ erDiagram
         int word1_id PK, FK
         int word2_id PK, FK
         int next_word_id PK, FK
-        int occurrences
+        int frequency
     }
 
     generated_sentences {
