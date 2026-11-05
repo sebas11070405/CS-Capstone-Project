@@ -1,33 +1,98 @@
 package com.sentencebuilder.autocomplete;
 
-import com.sentencebuilder.autocomplete.Autocomplete;
 import com.sentencebuilder.model.WordTransition;
-import com.sentencebuilder.repository.FakeData;
+import com.sentencebuilder.repository.FakeAutocompletRepo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 
+import java.util.*;
+import static org.junit.jupiter.api.Assertions.*;
 public class AutocompleteTest {
 
+    private FakeAutocompletRepo repo;
+    private Autocomplete autocomplete;
+
+    @BeforeEach
+    public void setUp(){
+        repo = new FakeAutocompletRepo();
+        autocomplete = new Autocomplete(repo);
+    }
     @Test
-    public static void main(String[] args){
-        FakeData data = new FakeData();
-        Autocomplete autocomplete = new Autocomplete(data);
+    public void testSuggestions(){
+        List<WordTransition> suggestions = autocomplete.getSuggestions("the", 2);
 
-        //Record existing transition
-        autocomplete.recordChoice("cat", "ran");
+        System.out.println("Previous Word: the");
+        System.out.println("Rank | Word | Occurrences | User Selected | Score");
 
-        //Record transition that doesn't exist yet
-        autocomplete.recordChoice("cat", "dreamed");
+        int rank = 1;
+        for (WordTransition transition : suggestions) {
+            int score = transition.getOccurrences()
+                    + transition.getUserSelected();
 
-
-
-        for(WordTransition transition : data.getTransitions("cat")){
-            System.out.println(transition.getNextWord() + " | frequency: " + transition.getFrequency() + " | selected: " + transition.getUserSelected());
+            System.out.printf("%d | %s | %d | %d | %d%n",
+                    rank++,
+                    transition.getNextWord(),
+                    transition.getOccurrences(),
+                    transition.getUserSelected(),
+                    score
+            );
         }
 
-        System.out.println(data.wordExists("dreamed"));
+        assertEquals(2, suggestions.size());
 
-        autocomplete.recordChoice("unusual", "word");
-        System.out.println(data.wordExists("unusual"));
-        System.out.println(data.wordExists("word"));
+        assertEquals("dog", suggestions.get(0).getNextWord());
+        assertEquals("boy", suggestions.get(1).getNextWord());
+
     }
+
+    @Test
+    public void testLimit(){
+        List<WordTransition> suggestions = autocomplete.getSuggestions("the", 2);
+
+        assertEquals(2, suggestions.size());
+    }
+
+    @Test
+    public void testUnknownWord(){
+        List<WordTransition> suggestions = autocomplete.getSuggestions("elephnat", 3);
+
+        assertTrue(suggestions.isEmpty());
+
+        autocomplete.recordChoice("the", "elephnat");
+
+        System.out.println("\nUnknown Word Test");
+        System.out.println("Input: elephnat");
+        System.out.println("Suggestions found: " + suggestions.size());
+        System.out.println("Word exists in database: " + repo.wordExists("elephnat"));
+
+        assertFalse(repo.wordExists("elephnat"));
+    }
+
+    @Test
+    public void testRecordChoice(){
+
+        System.out.println("\nRecording User Selection");
+        List<WordTransition> before = repo.getTransitions("the");
+
+        for (WordTransition t : before) {
+            if (t.getNextWord().equals("boy")) {
+                System.out.println("Before selection: " +
+                        t.getUserSelected());
+            }
+        }
+        autocomplete.recordChoice("the", "boy");
+
+        List<WordTransition> transitions = repo.getTransitions("the");
+
+        WordTransition boy = transitions.stream().filter(t -> t.getNextWord().equals("boy")).findFirst().orElseThrow();
+
+        System.out.println("After selection: " + boy.getUserSelected());
+
+        assertEquals(3, boy.getUserSelected());
+    }
+
+    @Test
+    public void testInvalidLimit(){
+        assertTrue(autocomplete.getSuggestions("the", 0).isEmpty() );
+   }
 }

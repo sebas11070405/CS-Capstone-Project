@@ -14,15 +14,4 @@ public abstract class AbstractGenerator implements Generator{
         this.maxWords = maxWords;
     }
 
-   // cleanSentence method removes any extra spaces and punctuation from the sentence
-    protected String cleanSentence(String sentence){
-        
-        return sentence.trim();
-    }
-
-    // isValidSentence method checks if the sentence is valid (not null and not blank)
-    protected boolean isValidSentence(String sentence){
-    
-        return sentence != null && !sentence.isBlank();
-    }
 }
