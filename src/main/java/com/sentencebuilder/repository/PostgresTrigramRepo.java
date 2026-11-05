@@ -54,7 +54,7 @@ public class PostgresTrigramRepo implements TrigramRepo{
         List<WordTransition> transitions = new ArrayList<>();
 
         String sql = """
-                SELECT w3.word AS next_word, t.frequency
+                SELECT w3.word AS next_word, t.occurrences
                 FROM trigrams t
                 JOIN words w1 ON t.word1_id = w1.word_id
                 JOIN words w2 ON t.word2_id = w2.word_id
@@ -76,7 +76,7 @@ public class PostgresTrigramRepo implements TrigramRepo{
 
                 while(rs.next()){
                     String nextWord = rs.getString("next_word");
-                    int frequency = rs.getInt("frequency");
+                    int frequency = rs.getInt("occurrences");
 
                     // Convert records into WordTransition objects
                     transitions.add(new WordTransition(nextWord, frequency));

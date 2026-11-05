@@ -35,14 +35,14 @@ CREATE TABLE bigrams
 (
     word_id        INT NOT NULL REFERENCES words (word_id),
     next_word_id   INT NOT NULL REFERENCES words (word_id),
-    frequency    INT NOT NULL DEFAULT 0 CHECK (frequency >= 0),
+    occurrences    INT NOT NULL DEFAULT 0 CHECK (occurrences >= 0),
     user_selected  INT NOT NULL DEFAULT 0 CHECK (user_selected >= 0),  -- times picked via auto-complete
     PRIMARY KEY (word_id, next_word_id)
 );
 
 -- Postgres does not index foreign keys automatically.
 CREATE INDEX ix_bigrams_next   ON bigrams (next_word_id);                   -- "what precedes X"
-CREATE INDEX ix_bigrams_follow ON bigrams (word_id, frequency DESC);      -- "most likely next word"
+CREATE INDEX ix_bigrams_follow ON bigrams (word_id, occurrences DESC);      -- "most likely next word"
 
 -- (word1, word2) -> next_word counts. Used by Trigram Backoff.
 CREATE TABLE trigrams
@@ -50,7 +50,7 @@ CREATE TABLE trigrams
     word1_id      INT NOT NULL REFERENCES words (word_id),
     word2_id      INT NOT NULL REFERENCES words (word_id),
     next_word_id  INT NOT NULL REFERENCES words (word_id),
-    frequency   INT NOT NULL DEFAULT 0 CHECK (frequency >= 0),
+    occurrences   INT NOT NULL DEFAULT 0 CHECK (occurrences >= 0),
     PRIMARY KEY (word1_id, word2_id, next_word_id)
 );
 
