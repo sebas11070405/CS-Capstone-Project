@@ -8,8 +8,6 @@
  *
  * Needs the tables from database/schema.sql.
  *
- * AI-assisted: getTransitions and addWord queries, tool not recorded
- *
  * Prompt:
  * Write an SQL query to retrieve possible next words and their occurrence frequencies
  * from the bigrams table by joining the words table and filtering by current word.

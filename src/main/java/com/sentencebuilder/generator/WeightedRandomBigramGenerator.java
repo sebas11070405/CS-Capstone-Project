@@ -6,8 +6,6 @@
  *
  * See AbstractGenerator for how to use it.
  *
- * AI-assisted: selectNextWord, tool not recorded
- *
  * Prompt:
  * Write a selectNextWord() method that selects the next word from a list of
  * word transitions using weighted random selection based on each word's frequency.
