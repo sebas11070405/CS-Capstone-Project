@@ -48,6 +48,12 @@
  * Include only progress reporting and its tests. Leave out backfill, generated imports, and unrelated
  * counting changes. Follow docs/comment-style.md, preserve the original attribution and add this
  * follow-up prompt. Run the tests and summarize the changes before opening a PR.
+ *
+ * Follow-up prompt:
+ * I noticed files like "Hello." and "Hello world." report 100% progress before the transaction
+ * commits because they have no triples. Keep every pre-commit progress value below 1 and report 1
+ * only after a successful commit. Add regression tests for both cases, including a failure before
+ * commit. Keep the change focused and rerun the tests.
  */
 
 package com.sentencebuilder.importer;
@@ -145,16 +151,17 @@ public class Importer {
         }
 
         // Each table is saved in one statement, so progress moves once per table. It's weighted by row
-        // count, since each row costs about the same to save.
+        // count, since each row costs about the same to save. The commit counts as one more unit, so
+        // every fraction here stays below 1 even when a file has no pairs or triples.
         int wordRows = stats.words().size();
         int bigramRows = stats.bigrams().size();
-        double totalRows = Math.max(1, wordRows + bigramRows + stats.trigrams().size());
+        double totalUnits = wordRows + bigramRows + stats.trigrams().size() + 1;
 
         listener.update(0, "Saving " + fileName + ": words…");
         repository.addWordCounts(stats.words());   // First, because the n-gram queries look up word ids
-        listener.update(wordRows / totalRows, "Saving " + fileName + ": word pairs…");
+        listener.update(wordRows / totalUnits, "Saving " + fileName + ": word pairs…");
         repository.addBigramCounts(stats.bigrams());
-        listener.update((wordRows + bigramRows) / totalRows, "Saving " + fileName + ": word triples…");
+        listener.update((wordRows + bigramRows) / totalUnits, "Saving " + fileName + ": word triples…");
         repository.addTrigramCounts(stats.trigrams());
     }
 

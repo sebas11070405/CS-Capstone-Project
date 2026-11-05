@@ -13,8 +13,9 @@ package com.sentencebuilder.importer;
 
 import com.sentencebuilder.database.Database;
 import org.junit.jupiter.api.Test;
-
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,10 @@ class ImporterTest {
 
     // 3 distinct words, 2 distinct pairs (zzqalpha zzqbeta appears twice), and 1 triple
     private static final String PROGRESS_TEXT = "Zzqprogress zzqalpha zzqbeta. Zzqalpha zzqbeta.";
+
+    // Like "Hello." and "Hello world.": no triples, and the first has no pairs either
+    private static final String ONE_WORD_TEXT = "Zzqhello.";
+    private static final String TWO_WORD_TEXT = "Zzqhello zzqworld.";
 
     /** One call a test listener received. */
     private record Update(double fraction, String message) {}
@@ -89,17 +94,41 @@ class ImporterTest {
 
     @Test
     void writeReportsEachTableInOrderWithoutFinishing() throws Exception {
-        List<Update> updates = new ArrayList<>();
-        inRolledBackTransaction(conn ->
-                Importer.write(conn, "progress.txt", stats(PROGRESS_TEXT),
-                        (fraction, message) -> updates.add(new Update(fraction, message))));
+        // Weighted by rows: 3 words, 2 pairs, and 1 triple, plus 1 unit for the commit, out of 7
+        assertEquals(List.of(
+                new Update(0, "Saving progress.txt…"),
+                new Update(0, "Saving progress.txt: words…"),
+                new Update(3.0 / 7, "Saving progress.txt: word pairs…"),
+                new Update(5.0 / 7, "Saving progress.txt: word triples…")), writeUpdates(PROGRESS_TEXT));
+    }
 
-        // Fractions are weighted by rows: 3 words, then 2 pairs, then 1 triple, out of 6
+    @Test
+    void writeStaysBelowOneForOneWord() throws Exception {
+        // 1 word and the commit, out of 2. Without the commit unit, pairs would start at 1.
         assertEquals(List.of(
                 new Update(0, "Saving progress.txt…"),
                 new Update(0, "Saving progress.txt: words…"),
                 new Update(0.5, "Saving progress.txt: word pairs…"),
-                new Update(5.0 / 6, "Saving progress.txt: word triples…")), updates);
+                new Update(0.5, "Saving progress.txt: word triples…")), writeUpdates(ONE_WORD_TEXT));
+    }
+
+    @Test
+    void writeStaysBelowOneWithoutTriples() throws Exception {
+        // 2 words, 1 pair, and the commit, out of 4. Without the commit unit, triples would start at 1.
+        assertEquals(List.of(
+                new Update(0, "Saving progress.txt…"),
+                new Update(0, "Saving progress.txt: words…"),
+                new Update(0.5, "Saving progress.txt: word pairs…"),
+                new Update(0.75, "Saving progress.txt: word triples…")), writeUpdates(TWO_WORD_TEXT));
+    }
+
+    /** Writes the text as progress.txt in a rolled-back transaction and returns every progress update. */
+    private static List<Update> writeUpdates(String text) throws Exception {
+        List<Update> updates = new ArrayList<>();
+        inRolledBackTransaction(conn ->
+                Importer.write(conn, "progress.txt", stats(text),
+                        (fraction, message) -> updates.add(new Update(fraction, message))));
+        return updates;
     }
 
     @Test
@@ -115,10 +144,11 @@ class ImporterTest {
         });
     }
 
-    @Test
-    void importFileNeverReportsCompletionWhenCommitIsSkipped(@TempDir Path dir) throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {PROGRESS_TEXT, ONE_WORD_TEXT, TWO_WORD_TEXT})
+    void importFileNeverReportsCompletionWhenCommitIsSkipped(String text, @TempDir Path dir) throws Exception {
         Path file = dir.resolve("progress.txt");
-        Files.writeString(file, PROGRESS_TEXT, StandardCharsets.UTF_8);
+        Files.writeString(file, text, StandardCharsets.UTF_8);
 
         // Failing on the last update before the commit makes inTransaction roll back instead of
         // committing, the same as a real failure at that point. Nothing reaches the shared database.
@@ -141,7 +171,7 @@ class ImporterTest {
         try (Connection conn = Database.getConnection();
              PreparedStatement statement = conn.prepareStatement(
                      "SELECT count(*) FROM source_files WHERE content_hash = ?")) {
-            statement.setString(1, stats(PROGRESS_TEXT).contentHash());
+            statement.setString(1, stats(text).contentHash());
             try (ResultSet rs = statement.executeQuery()) {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "source_files row was committed");
