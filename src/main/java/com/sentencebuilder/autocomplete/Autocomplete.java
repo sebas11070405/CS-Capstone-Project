@@ -1,55 +1,66 @@
+/*
+ * Offers the user choices for the next word and records which word they use.
+ * The UI should call getSuggestions once a word is complete, after a space,
+ * period, or comma, and call recordChoice with the word the user picked or typed.
+ * Words are normalized the same way imported text is, so "The" and "the," both
+ * mean "the".
+ *
+ * Needs a WordRepository on an open connection. To save all of a choice or none
+ * of it, call recordChoice inside Database.inTransaction with a repository on
+ * that transaction's connection.
+ */
+
 package com.sentencebuilder.autocomplete;
 
+import com.sentencebuilder.database.WordRepository;
 import com.sentencebuilder.model.WordTransition;
-import com.sentencebuilder.repository.TransitionRepository;
+import com.sentencebuilder.tokenizer.Tokenizer;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class Autocomplete {
 
-    private final TransitionRepository repo;
+    private final WordRepository repo;   // Finds next words and saves the user's choices
 
-
-    // Accept any implementation of TransitionRepository
-    // Temporary: passes FakeData
-    public Autocomplete(TransitionRepository repo){
+    /** Creates an autocomplete that reads from and writes to repo. */
+    public Autocomplete(WordRepository repo) {
         this.repo = repo;
     }
 
-
-    // ask repository for list of possible next words (getSuggestions())
-    public List<WordTransition> getSuggestions(String previousWord, int limit){
-        if (limit <= 0){
+    /**
+     * Returns up to limit words that can follow previousWord, most frequent first.
+     * Returns an empty list if limit isn't positive, if previousWord isn't one
+     * valid word, or if nothing has ever followed it.
+     */
+    public List<WordTransition> getSuggestions(String previousWord, int limit) {
+        String previous = normalize(previousWord);
+        if (previous == null || limit <= 0) {
             return List.of();
         }
 
-        List<WordTransition> transitions = repo.getTransitions(previousWord);
-
-        // order candidates from highest to lowest frequency (sorted())
-        // restricts the number of suggestions returned (limit(limit))
-        // collect results into a list
-        return transitions.stream().sorted(Comparator.comparingInt(WordTransition::getFrequency).reversed()).limit(limit).toList();
+        // The repository returns the most frequent words first, so these are the top suggestions
+        return repo.getTransitions(previous).stream().limit(limit).toList();
     }
 
-    public void recordChoice(String previousWord, String chosenWord){
-        if(previousWord == null || previousWord.isBlank() || chosenWord == null || chosenWord.isBlank()){
-            throw new IllegalArgumentException(
-                    "Previous word and chosen word cannot be blank."
-            );
+    /**
+     * Records that the user chose chosenWord after previousWord. The spec says to
+     * add a word that isn't stored yet, so either word or the pair may be new.
+     * Throws IllegalArgumentException unless both are exactly one valid word.
+     */
+    public void recordChoice(String previousWord, String chosenWord) {
+        String previous = normalize(previousWord);
+        String chosen = normalize(chosenWord);
+        if (previous == null || chosen == null) {
+            throw new IllegalArgumentException("Not valid words: " + previousWord + ", " + chosenWord);
         }
 
-        previousWord = previousWord.toLowerCase();
-        chosenWord = chosenWord.toLowerCase();
+        repo.addWord(previous);
+        repo.addWord(chosen);
+        repo.recordSelection(previous, chosen);
+    }
 
-        if(!repo.wordExists(previousWord)){
-            repo.addWord(previousWord);
-        }
-
-        if(!repo.wordExists(chosenWord)){
-            repo.addWord(chosenWord);
-        }
-
-        repo.recordSelection(previousWord, chosenWord);
+    /** Returns the word as it is stored in the database, or null if the text isn't one valid word. */
+    private static String normalize(String text) {
+        return text == null ? null : Tokenizer.normalizeWord(text);
     }
 }
