@@ -70,30 +70,31 @@ public class MarkovGenerator extends AbstractGenerator {
 
         String currentWord = startWord;
 
-        // Generate words until we reach the max sentence length (maxWords)
+        /** Generate words until the maximum word count is reached */
         for (int i = 1; i < maxWords; i++) {
             
-            // Retrieve the list of possible transitions for the current word
-            // WordTransition is a model class that holds the next word and its frequency.
+            /** Retrieve possible next words and their frequencies */
             List<WordTransition> transitions = repo.getTransitions(currentWord);
 
 
 
-            if (transitions.isEmpty()) {
+            /** Stop generation if no transitions are available */
+            if (transitions == null || transitions.isEmpty()) {
                 break; // No transitions available. Stop
             }
-            // Else: Select the next word based on the frequencies
+            /** Select the next word using weighted random selection */
             String nextWord = selectNextWord(transitions);
 
 
             
             if (nextWord == null) {
-                break; // No valid next word found
+                break;
             }
-            // Update/append the sentence with the selected next word
+            
+            /** Append selected word to the sentence */
             sentenceBuilder.append(" ").append(nextWord);
 
-            // Move to the next word for the next iteration
+            /** Use the selected word as the context for the next prediction */
             currentWord = nextWord;
         }
 
@@ -127,23 +128,23 @@ public class MarkovGenerator extends AbstractGenerator {
      */
 private String selectNextWord(List<WordTransition> transitions) {
 
-        // calculate total frequency to determine the probability distribution.
+        /** Calculate sum of all transition frequencies */
         int totalFrequency = 0;
 
         for (WordTransition transition : transitions) {
             totalFrequency += transition.getOccurrences();
         }
 
+        /** Stop if no valid frequencies */
         if (totalFrequency == 0) {
-            return null; // No valid transitions
+            return null; 
         }
 
-        // Generate a random value to select the next word
-        // Probability of selecting a word is proportional to its frequency
-        // Implement the ranges according to the frequencies.
+        /** Generate a random value between 0 and totalFrequency - 1 */
         int randomValue = random.nextInt(totalFrequency);
         int cumulativeFrequency = 0;
 
+        /** Find transition whose cumulative range contains randomValue */
         for (WordTransition transition : transitions) {
             cumulativeFrequency += transition.getOccurrences();
 
@@ -152,7 +153,8 @@ private String selectNextWord(List<WordTransition> transitions) {
                 return transition.getNextWord();
             }
         }
-        return null; // Should not reach here if transitions are valid
+        /** Return null if no transition was selected */
+        return null; 
     }
 
 }

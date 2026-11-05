@@ -1,14 +1,16 @@
 /*
- * Contains functionality shared by generators, such as cleaning and validating sentences.
+ * Holds what every generator shares: the maximum sentence length and helpers
+ * for cleaning and checking a generated sentence. Each generation algorithm
+ * extends this class and implements generateSentence.
  */
 
 package com.sentencebuilder.generator;
 
 public abstract class AbstractGenerator implements Generator{
 
-    protected int maxWords;
+    protected int maxWords;   // Longest sentence a generator may build, in words
 
-    // Constructor for AbstractGenerator, takes in the maximum number of words to generate
+    /** Creates a generator that builds sentences of at most maxWords words. */
     public AbstractGenerator(int maxWords){
 
         this.maxWords = maxWords;

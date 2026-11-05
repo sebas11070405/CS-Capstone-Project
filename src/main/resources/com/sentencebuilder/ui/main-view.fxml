@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Import Text File button and the status label that reports its progress.
+  MainController handles the button and updates the label.
+-->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -11,6 +15,6 @@
     <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
   </padding>
 
-  <Label fx:id="welcomeText"/>
-  <Button text="Hello!" onAction="#onHelloButtonClick"/>
+  <Button fx:id="importButton" text="Import Text File…" onAction="#onImport"/>
+  <Label fx:id="statusLabel" wrapText="true"/>
 </VBox>

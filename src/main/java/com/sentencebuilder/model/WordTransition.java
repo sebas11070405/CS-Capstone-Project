@@ -14,6 +14,7 @@ package com.sentencebuilder.model;
  */
 public class WordTransition {
 
+    /** The candidate word that may follow the current word. */
     private final String nextWord;
     private final int occurrences;
     private final int userSelected;
@@ -56,7 +57,12 @@ public class WordTransition {
 
         return occurrences;
     }
-
+   /**
+     * Returns the number of times users have selected this transition
+     * through the autocomplete feature.
+     *
+     * @return the autocomplete selection count
+     */
     public int getUserSelected(){
         return userSelected;
     }
