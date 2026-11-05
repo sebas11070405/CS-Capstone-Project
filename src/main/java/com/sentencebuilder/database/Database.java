@@ -21,7 +21,7 @@ public final class Database {
 
     /**
      * Database work passed to inTransaction as a lambda. Unlike Function, it may
-     * throw SQLException and one checked exception of the caller's choosing.
+     * throw SQLException and one checked exception to the caller's choosing.
      */
     @FunctionalInterface
     public interface TransactionWork<T, E extends Exception> {
