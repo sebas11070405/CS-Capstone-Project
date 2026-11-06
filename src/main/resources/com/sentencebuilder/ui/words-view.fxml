@@ -64,5 +64,8 @@
     <Button fx:id="saveButton" text="Save" onAction="#onSave" disable="true"/>
   </HBox>
 
+  <Label fx:id="warningLabel" wrapText="true" style="-fx-text-fill: #777777;"
+         text="Manual override: this doesn't change the word pair counts, so edited numbers can drift from what the importer counted."/>
+
   <Label fx:id="statusLabel" wrapText="true"/>
 </VBox>
