@@ -1,9 +1,6 @@
 /*
- * Tests WordDetailRepository against the shared database. Each test seeds a
- * few made-up words and word pairs inside a transaction that is always rolled
- * back, so nothing is left behind.
- *
- * Needs DB_URL, DB_USER, and DB_PASSWORD in .env (see Database).
+ * Tests WordDetailRepository on the shared database. Every test seeds fake
+ * words and rolls back at the end, so nothing sticks around. Needs .env.
  */
 
 package com.sentencebuilder.database;
@@ -24,19 +21,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WordDetailRepositoryTest {
 
-    // Made up so they can't collide with real words already in the shared database
-    private static final String WORD_A = "zzqdetaila";
-    private static final String WORD_B = "zzqdetailb";
-    private static final String WORD_C = "zzqdetailc";
-    private static final String WORD_D = "zzqdetaild";
+    // Fake words so they can't clash with real ones
+    private static final String A = "zzqdetaila";
+    private static final String B = "zzqdetailb";
+    private static final String C = "zzqdetailc";
+    private static final String D = "zzqdetaild";
 
-    /** Database work a test passes in as a lambda. Unlike Runnable, it may throw. */
     private interface DatabaseWork {
         void run(Connection conn) throws Exception;
     }
 
-    /** Runs the work in a transaction and always rolls it back, even if the work fails. */
-    private static void inRolledBackTransaction(DatabaseWork work) throws Exception {
+    // Always rolls back, even if the test fails
+    private static void rolledBack(DatabaseWork work) throws Exception {
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
             try {
@@ -47,21 +43,17 @@ class WordDetailRepositoryTest {
         }
     }
 
-    /**
-     * Adds the four test words and these pairs, written as first -> second (occurrences, user_selected):
-     * a -> b (5, 0), a -> c (5, 2), a -> d (1, 0), c -> a (7, 0), d -> a (3, 0).
-     */
+    // Pairs as first -> second (occurrences, picks): a>b (5,0) a>c (5,2) a>d (1,0) c>a (7,0) d>a (3,0)
     private static void seed(Connection conn) throws SQLException {
-        insertWord(conn, WORD_A, 10, 2, 1);
-        insertWord(conn, WORD_B, 5, 0, 0);
-        insertWord(conn, WORD_C, 8, 0, 0);
-        insertWord(conn, WORD_D, 4, 0, 0);
-
-        insertPair(conn, WORD_A, WORD_B, 5, 0);
-        insertPair(conn, WORD_A, WORD_C, 5, 2);
-        insertPair(conn, WORD_A, WORD_D, 1, 0);
-        insertPair(conn, WORD_C, WORD_A, 7, 0);
-        insertPair(conn, WORD_D, WORD_A, 3, 0);
+        for (String word : List.of(B, C, D)) {
+            insertWord(conn, word, 5, 0, 0);
+        }
+        insertWord(conn, A, 10, 2, 1);
+        insertPair(conn, A, B, 5, 0);
+        insertPair(conn, A, C, 5, 2);
+        insertPair(conn, A, D, 1, 0);
+        insertPair(conn, C, A, 7, 0);
+        insertPair(conn, D, A, 3, 0);
     }
 
     private static void insertWord(Connection conn, String word, int total, int start, int end)
@@ -76,16 +68,15 @@ class WordDetailRepositoryTest {
         }
     }
 
-    private static void insertPair(Connection conn, String first, String second, int occurrences,
-                                   int userSelected) throws SQLException {
+    private static void insertPair(Connection conn, String first, String second, int occurrences, int picks)
+            throws SQLException {
         try (PreparedStatement statement = conn.prepareStatement("""
                 INSERT INTO bigrams (word_id, next_word_id, occurrences, user_selected)
-                SELECT w1.word_id, w2.word_id, ?, ?
-                FROM words w1, words w2
+                SELECT w1.word_id, w2.word_id, ?, ? FROM words w1, words w2
                 WHERE w1.word = ? AND w2.word = ?
                 """)) {
             statement.setInt(1, occurrences);
-            statement.setInt(2, userSelected);
+            statement.setInt(2, picks);
             statement.setString(3, first);
             statement.setString(4, second);
             statement.executeUpdate();
@@ -94,70 +85,56 @@ class WordDetailRepositoryTest {
 
     @Test
     void findsAWordsCounts() throws Exception {
-        inRolledBackTransaction(conn -> {
+        rolledBack(conn -> {
             seed(conn);
-
-            Optional<WordInfo> info = new WordDetailRepository(conn).findWord(WORD_A);
-
-            assertEquals(Optional.of(new WordInfo(WORD_A, 10, 2, 1)), info);
+            assertEquals(Optional.of(new WordInfo(A, 10, 2, 1)), new WordDetailRepository(conn).findWord(A));
         });
     }
 
     @Test
-    void unknownWordHasNoInfoAndNoNeighbors() throws Exception {
-        inRolledBackTransaction(conn -> {
+    void unknownWordGivesNothing() throws Exception {
+        rolledBack(conn -> {
             WordDetailRepository repository = new WordDetailRepository(conn);
-
-            assertTrue(repository.findWord("zzqnotstored").isEmpty());
-            assertTrue(repository.findFollowers("zzqnotstored", 10).isEmpty());
-            assertTrue(repository.findPredecessors("zzqnotstored", 10).isEmpty());
+            assertTrue(repository.findWord("zzqnope").isEmpty());
+            assertTrue(repository.findFollowers("zzqnope", 10).isEmpty());
+            assertTrue(repository.findPredecessors("zzqnope", 10).isEmpty());
         });
     }
 
     @Test
-    void followersAreOrderedByOccurrencesThenUserSelected() throws Exception {
-        inRolledBackTransaction(conn -> {
+    void followersSortByOccurrencesThenPicks() throws Exception {
+        rolledBack(conn -> {
             seed(conn);
-
-            List<Neighbor> followers = new WordDetailRepository(conn).findFollowers(WORD_A, 10);
-
-            // b and c both occur 5 times, so the one users picked comes first
-            assertEquals(List.of(
-                    new Neighbor(WORD_C, 5, 2),
-                    new Neighbor(WORD_B, 5, 0),
-                    new Neighbor(WORD_D, 1, 0)), followers);
+            // b and c both hit 5, c wins because users picked it
+            assertEquals(List.of(new Neighbor(C, 5, 2), new Neighbor(B, 5, 0), new Neighbor(D, 1, 0)),
+                    new WordDetailRepository(conn).findFollowers(A, 10));
         });
     }
 
     @Test
-    void predecessorsAreOrderedByOccurrences() throws Exception {
-        inRolledBackTransaction(conn -> {
+    void predecessorsSortByOccurrences() throws Exception {
+        rolledBack(conn -> {
             seed(conn);
-
-            List<Neighbor> predecessors = new WordDetailRepository(conn).findPredecessors(WORD_A, 10);
-
-            assertEquals(List.of(new Neighbor(WORD_C, 7, 0), new Neighbor(WORD_D, 3, 0)), predecessors);
+            assertEquals(List.of(new Neighbor(C, 7, 0), new Neighbor(D, 3, 0)),
+                    new WordDetailRepository(conn).findPredecessors(A, 10));
         });
     }
 
     @Test
-    void limitKeepsOnlyTheTopNeighbors() throws Exception {
-        inRolledBackTransaction(conn -> {
+    void limitCapsTheResults() throws Exception {
+        rolledBack(conn -> {
             seed(conn);
-
-            List<Neighbor> followers = new WordDetailRepository(conn).findFollowers(WORD_A, 2);
-
-            assertEquals(List.of(new Neighbor(WORD_C, 5, 2), new Neighbor(WORD_B, 5, 0)), followers);
+            assertEquals(List.of(new Neighbor(C, 5, 2), new Neighbor(B, 5, 0)),
+                    new WordDetailRepository(conn).findFollowers(A, 2));
         });
     }
 
     @Test
-    void limitBelowOneIsRejected() throws Exception {
-        inRolledBackTransaction(conn -> {
+    void limitBelowOneThrows() throws Exception {
+        rolledBack(conn -> {
             WordDetailRepository repository = new WordDetailRepository(conn);
-
-            assertThrows(IllegalArgumentException.class, () -> repository.findFollowers(WORD_A, 0));
-            assertThrows(IllegalArgumentException.class, () -> repository.findPredecessors(WORD_A, -1));
+            assertThrows(IllegalArgumentException.class, () -> repository.findFollowers(A, 0));
+            assertThrows(IllegalArgumentException.class, () -> repository.findPredecessors(A, -1));
         });
     }
 }

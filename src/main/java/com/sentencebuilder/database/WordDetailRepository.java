@@ -1,14 +1,7 @@
 /*
- * Reads everything the database knows about one word: its counts, the words
- * that have followed it, and the words that have come before it. The Words
- * screen uses this to show a word's details when the user selects it.
- *
- * Every method runs on the connection passed to the constructor and only reads,
- * so the caller owns the connection and decides when to close it. Words must
- * already be normalized the way imported text is (see Tokenizer.normalizeWord),
- * because the words table stores them lowercase.
- *
- * Needs the tables from database/schema.sql.
+ * Looks up one word: its counts, what comes after it, and what comes before it.
+ * The Words screen uses this for the detail view. Read only, runs on the
+ * connection you pass in. Words need to be normalized first (Tokenizer.normalizeWord).
  */
 
 package com.sentencebuilder.database;
@@ -23,13 +16,10 @@ import java.util.Optional;
 
 public final class WordDetailRepository {
 
-    private static final String FIND_WORD = """
-            SELECT word, total_count, start_count, end_count
-            FROM words
-            WHERE word = ?
-            """;
+    private static final String FIND_WORD =
+            "SELECT word, total_count, start_count, end_count FROM words WHERE word = ?";
 
-    // Most common first; user_selected breaks ties so words the user picked rank above never-picked ones
+    // Most common first, then the ones users picked, then alphabetical so ties stay stable
     private static final String FIND_FOLLOWERS = """
             SELECT w2.word, b.occurrences, b.user_selected
             FROM bigrams b
@@ -40,7 +30,7 @@ public final class WordDetailRepository {
             LIMIT ?
             """;
 
-    // Same as FIND_FOLLOWERS in the other direction, using the index on next_word_id
+    // Same thing flipped around
     private static final String FIND_PREDECESSORS = """
             SELECT w1.word, b.occurrences, b.user_selected
             FROM bigrams b
@@ -51,61 +41,45 @@ public final class WordDetailRepository {
             LIMIT ?
             """;
 
-    private final Connection conn;   // Owned by the caller, who also closes it
+    private final Connection conn;   // Caller opens and closes it
 
-    /** A word with how often it appears in total, at the start of a sentence, and at the end. */
+    /** A word and how often it shows up overall, at sentence starts, and at sentence ends. */
     public record WordInfo(String word, int totalCount, int startCount, int endCount) {}
 
-    /**
-     * A word next to another word in a pair: how often the pair occurs in imported text and how
-     * often a user chose it through auto-complete.
-     */
+    /** A word next to another one, with how often the pair showed up and how often users picked it. */
     public record Neighbor(String word, int occurrences, int userSelected) {}
 
-    /** Creates a repository that runs every query on the given connection. */
     public WordDetailRepository(Connection conn) {
         this.conn = conn;
     }
 
-    /** Looks up a word's counts. Returns empty if the word is not in the database. */
+    /** Gets a word's counts, or empty if we've never seen it. */
     public Optional<WordInfo> findWord(String word) throws SQLException {
         try (PreparedStatement statement = conn.prepareStatement(FIND_WORD)) {
             statement.setString(1, word);
             try (ResultSet rs = statement.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                return Optional.of(new WordInfo(rs.getString("word"), rs.getInt("total_count"),
-                        rs.getInt("start_count"), rs.getInt("end_count")));
+                return rs.next()
+                        ? Optional.of(new WordInfo(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4)))
+                        : Optional.empty();
             }
         }
     }
 
-    /**
-     * Returns up to limit words that have followed the given word, most frequent first. The list
-     * is empty if the word is unknown or nothing has followed it.
-     */
+    /** Top limit words that come after this one, most common first. Empty if none. */
     public List<Neighbor> findFollowers(String word, int limit) throws SQLException {
         return findNeighbors(FIND_FOLLOWERS, word, limit);
     }
 
-    /**
-     * Returns up to limit words that have come right before the given word, most frequent first.
-     * The list is empty if the word is unknown or nothing has come before it.
-     */
+    /** Top limit words that come right before this one, most common first. Empty if none. */
     public List<Neighbor> findPredecessors(String word, int limit) throws SQLException {
         return findNeighbors(FIND_PREDECESSORS, word, limit);
     }
 
-    /**
-     * Runs one of the neighbor queries, which both take a word and a limit and return the
-     * neighbor's word, occurrences, and user_selected in that order.
-     */
+    // Both neighbor queries take (word, limit) and return (word, occurrences, user_selected)
     private List<Neighbor> findNeighbors(String sql, String word, int limit) throws SQLException {
         if (limit < 1) {
             throw new IllegalArgumentException("limit must be at least 1: " + limit);
         }
-
         List<Neighbor> neighbors = new ArrayList<>();
         try (PreparedStatement statement = conn.prepareStatement(sql)) {
             statement.setString(1, word);
