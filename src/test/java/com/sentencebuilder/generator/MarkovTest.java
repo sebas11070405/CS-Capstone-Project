@@ -26,7 +26,7 @@ public class MarkovTest {
     public void testGetTransitions() {
         TransitionRepository repo = new PostgresTransitionRepo();
 
-        MarkovGenerator generator = new MarkovGenerator(3, repo, "the");
+        MarkovGenerator generator = new MarkovGenerator(10, repo, "sherlock");
 
 
             String sentence = generator.generateSentence();
@@ -38,7 +38,6 @@ public class MarkovTest {
 
 
     }
-
     /**
      * Tests sentence generation when no word transitions exist.
      *

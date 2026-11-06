@@ -28,7 +28,7 @@ import java.util.Random;
 
 public class MarkovGenerator extends AbstractGenerator {
 
-   /** Repository used to retrieve possible next-word transitions. */
+    /** Repository used to retrieve possible next-word transitions. */
     private final TransitionRepository repo;
 
     /** Random number generator used for weighted word selection */
@@ -45,7 +45,7 @@ public class MarkovGenerator extends AbstractGenerator {
      * @param startWord initial word used to begin sentence generation
      */
     public MarkovGenerator(int maxWords, TransitionRepository repo, String startWord) {
-      
+
         super(maxWords);
         
         this.repo = repo;
@@ -53,21 +53,21 @@ public class MarkovGenerator extends AbstractGenerator {
         this.startWord = startWord;
     }
 
-     /**
+    /**
      * Generates a sentence using probability-weighted word transitions.
-     * 
+     *
      * The algorithm begins with the starting word and retrieves its possible next-word transitions from the repository.
      * A next word is randomly selected based on the frequency distribution of the available transitions.
-     * 
+     *
      * The selected word is appended to the sentence and becomes the current word for the next iteration.
-     * 
+     *
      * @return generated sentence containing up to maxWords words
      */
     @Override
     public String generateSentence() {
 
         StringBuilder sentenceBuilder = new StringBuilder(startWord);
-        
+
         String currentWord = startWord;
 
         /** Generate words until the maximum word count is reached */
@@ -76,7 +76,7 @@ public class MarkovGenerator extends AbstractGenerator {
             /** Retrieve possible next words and their frequencies */
             List<WordTransition> transitions = repo.getTransitions(currentWord);
 
-            System.out.println("Current word: " + currentWord);
+
 
             /** Stop generation if no transitions are available */
             if (transitions == null || transitions.isEmpty()) {
@@ -85,7 +85,8 @@ public class MarkovGenerator extends AbstractGenerator {
             /** Select the next word using weighted random selection */
             String nextWord = selectNextWord(transitions);
 
-            /** Stop generation if no valid next word is selected */
+
+            
             if (nextWord == null) {
                 break;
             }
@@ -100,39 +101,38 @@ public class MarkovGenerator extends AbstractGenerator {
         return sentenceBuilder.toString();
         
 }
-
- /**
- * Selects the next word using weighted random selection.
- *
- * Each transition contains a candidate next word and its
- * frequency of occurrence. The probability of selecting a
- * particular word is calculated as:
- *
- * <pre>
- * P(nextWord) = frequency(nextWord) / totalFrequency
- * </pre>
- *
- * The method first calculates the total frequency of all
- * available transitions. It then generates a random integer
- * within that range and uses cumulative frequencies to determine
- * which word is selected.
- *
- * Higher-frequency transitions occupy larger portions of
- * the selection range, making them more likely to be chosen.
- * 
- * AI Prompt: Write a selectNextWord() method that selects the next word from a list of 
- * word transitions using weighted random selection based on each word's frequency.
- *
- * @param transitions list of possible next-word transitions and their corresponding frequencies
- * @return a randomly selected next word based on transition frequencies, or null if no valid transition exists
- */
+    /**
+     * Selects the next word using weighted random selection.
+     *
+     * Each transition contains a candidate next word and its
+     * frequency of occurrence. The probability of selecting a
+     * particular word is calculated as:
+     *
+     * <pre>
+     * P(nextWord) = frequency(nextWord) / totalFrequency
+     * </pre>
+     *
+     * The method first calculates the total frequency of all
+     * available transitions. It then generates a random integer
+     * within that range and uses cumulative frequencies to determine
+     * which word is selected.
+     *
+     * Higher-frequency transitions occupy larger portions of
+     * the selection range, making them more likely to be chosen.
+     *
+     * Claude Prompt: Write a selectNextWord() method that selects the next word from a list of
+     * word transitions using weighted random selection based on each word's frequency.
+     *
+     * @param transitions list of possible next-word transitions and their corresponding frequencies
+     * @return a randomly selected next word based on transition frequencies, or null if no valid transition exists
+     */
 private String selectNextWord(List<WordTransition> transitions) {
 
         /** Calculate sum of all transition frequencies */
         int totalFrequency = 0;
 
         for (WordTransition transition : transitions) {
-            totalFrequency += transition.getFrequency();
+            totalFrequency += transition.getOccurrences();
         }
 
         /** Stop if no valid frequencies */
@@ -146,10 +146,8 @@ private String selectNextWord(List<WordTransition> transitions) {
 
         /** Find transition whose cumulative range contains randomValue */
         for (WordTransition transition : transitions) {
-            cumulativeFrequency += transition.getFrequency();
+            cumulativeFrequency += transition.getOccurrences();
 
-            System.out.println("Random value: " + randomValue);
-            System.out.println("Cumulative Frequency: " + cumulativeFrequency);
 
             if (randomValue < cumulativeFrequency) {
                 return transition.getNextWord();

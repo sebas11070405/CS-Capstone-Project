@@ -12,7 +12,7 @@ import java.util.List;
  * from the current word.
  *
  * Word transitions are retrieved through the TransitionRepository interface, allowing the generator to
- * work with either hardcoded test data or transitions stored in a database.
+ * work with either hardcoded test data or transitions stored in database.
  *
  * Sentence generation continues until the maximum word count is reached or no additional transitions are available.
  *
@@ -25,7 +25,6 @@ public class FrequentWordGenerator extends AbstractGenerator {
 
     /** Repository used to retrieve word transitions. */
     private final TransitionRepository repo;
-
     /** Initial word to begin sentence generation. */
     private final String startWord;
 
@@ -48,7 +47,7 @@ public class FrequentWordGenerator extends AbstractGenerator {
      * Generates a sentence by selecting the most frequent next word based on the current word.
      *
      * Algorithm begins with the specified starting word and retrieves its possible transitions from the
-     * repository. The transition with the highest frequency is selected and appended to the sentence.
+     * repository. The transitions with the highest frequency is selected and appended to the sentence.
      *
      * @return generated sentence containing up to maxWords words
      */
@@ -73,6 +72,7 @@ public class FrequentWordGenerator extends AbstractGenerator {
             if(nextWord == null){
                 break;
             }
+
             /** Append the selected word and update the current word */
             sentence.append(" ").append(nextWord);
             currentWord = nextWord;
@@ -102,7 +102,7 @@ public class FrequentWordGenerator extends AbstractGenerator {
 
         /** Find transition with the highest frequency */
         for (WordTransition transition : transitions){
-            if(transition.getFrequency() > mostFrequent.getFrequency()){
+            if(transition.getOccurrences() > mostFrequent.getOccurrences()){
                 mostFrequent = transition;
             }
         }

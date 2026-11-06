@@ -19,11 +19,13 @@ import java.util.List;
  */
 
 public interface TransitionRepository {
+
+
     /**
      * Retrieves possible next words based on the current word.
      *
      * Each transition contains a candidate next word and its
-     * frequency of occurrence in the corpus. 
+     * frequency of occurrence in the corpus.
      *
      * @param word the current word used to retrieve transitions
      * @return a list of possible next-word transitions and their
@@ -39,7 +41,7 @@ public interface TransitionRepository {
      */
     boolean wordExists(String word);
 
-     /**
+    /**
      * Adds a new word to the vocabulary if it does not already exist.
      *
      * This method supports the autocomplete component by allowing
@@ -54,7 +56,7 @@ public interface TransitionRepository {
      *
      * The method tracks the relationship between the previous
      * word and the selected next word. Implementations may update
-     * a selection counter to record how frequently a 
+     * a selection counter to record how frequently a
      * suggestion is chosen.
      *
      * @param previousWord the word preceding the selected suggestion

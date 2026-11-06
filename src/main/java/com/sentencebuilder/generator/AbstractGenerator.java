@@ -16,18 +16,4 @@ public abstract class AbstractGenerator implements Generator{
         this.maxWords = maxWords;
     }
 
-    /**
-     * Cleans up a generated sentence before it is used. For now it only trims
-     * leading and trailing whitespace.
-     */
-    protected String cleanSentence(String sentence){
-
-        return sentence.trim();
-    }
-
-    /** Returns true if the sentence has text: not null, empty, or only whitespace. */
-    protected boolean isValidSentence(String sentence){
-
-        return sentence != null && !sentence.isBlank();
-    }
 }
