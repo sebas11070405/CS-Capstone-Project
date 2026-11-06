@@ -28,7 +28,7 @@ public class FrequentWordTest {
     public void testGetTransitions() {
         TransitionRepository repo = new PostgresTransitionRepo();
 
-        FrequentWordGenerator generator = new FrequentWordGenerator(10, repo, "the");
+        FrequentWordGenerator generator = new FrequentWordGenerator(10, repo, "sherlock");
 
 
         String sentence = generator.generateSentence();

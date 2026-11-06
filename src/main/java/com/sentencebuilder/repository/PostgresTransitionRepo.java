@@ -6,6 +6,7 @@ import com.sentencebuilder.model.WordTransition;
 import java.sql.*;
 import java.util.*;
 
+
 /**
  * PostgreSQL implementation of the TransitionRepository interface.
  *
@@ -16,7 +17,7 @@ import java.util.*;
  * Word transitions are retrieved from the bigrams table, which stores
  * pairs of consecutive words and their frequencies of occurrence.
  * The repository converts these database records into WordTransition
- * objects that sentence generation algorithms can use.
+ * objects that can be used by sentence generation algorithms.
  *
  * The repository also supports checking whether a word exists,
  * inserting new words, and recording user selections made through
@@ -42,7 +43,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
      * returned as a list. These transitions are used by the Markov
      * and Most Frequent Word generators to predict the next word.
      *
-     * AI Prompt: Write an SQL query to retrieve possible next words and their occurrence frequencies
+     * Claude Prompt: Write an SQL query to retrieve possible next words and their occurrence frequencies
      * from the bigrams table by joining the words table and filtering by current word.
      *
      * @param word the current word used to search for possible next words
@@ -56,7 +57,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
         List<WordTransition> transitions = new ArrayList<>();
 
         String sql = """
-                SELECT w2.word, b.occurrences
+                SELECT w2.word, b.occurrences, b.user_selected
                 FROM bigrams b
                 JOIN words w1 ON b.word_id = w1.word_id
                 JOIN words w2 ON b.next_word_id = w2.word_id
@@ -65,16 +66,16 @@ public class PostgresTransitionRepo implements TransitionRepository{
 
         try (Connection conn = Database.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            /** Set current word as the query parameter */
+
             stmt.setString(1, word);
 
             try (ResultSet rs = stmt.executeQuery()) {
-                /** Convert each database record into a WordTransition object */
                 while (rs.next()) {
                     String nextWord = rs.getString("word");
                     int frequency = rs.getInt("occurrences");
+                    int userSelected = rs.getInt("user_selected");
 
-                    transitions.add(new WordTransition(nextWord, frequency));
+                    transitions.add(new WordTransition(nextWord, frequency, userSelected));
                 }
             }
 
@@ -105,7 +106,6 @@ public class PostgresTransitionRepo implements TransitionRepository{
 
             stmt.setString(1, word);
 
-            /** A matching row indicates that the word exists */
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
             }
@@ -124,7 +124,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
      * This operation supports the autocomplete feature by allowing
      * previously unknown words to be added to the database.
      *
-     * AI Prompt: Write an SQL query to insert a new word into the words table and handle duplicate
+     * Claude Prompt: Write an SQL query to insert a new word into the words table and handle duplicate
      * words to prevent inserting existing records.
      *
      * @param word the word to insert into the database
@@ -141,8 +141,6 @@ public class PostgresTransitionRepo implements TransitionRepository{
         try (Connection conn = Database.getConnection();
         PreparedStatement stmt = conn.prepareStatement(sql)){
             stmt.setString(1, word);
-
-            /** Insert word unless it already exists. */
             stmt.executeUpdate();
         } catch (SQLException e){
             throw new RuntimeException("Error adding word", e);
@@ -171,14 +169,24 @@ public class PostgresTransitionRepo implements TransitionRepository{
     @Override
     public void recordSelection(String previousWord, String nextWord) {
         String sql = """
-                UPDATE bigrams
-                SET user_selected = user_selected + 1
-                WHERE word_id = (
-                    SELECT word_id FROM words WHERE word = ?
+                INSERT INTO bigrams (
+                    word_id,
+                    next_word_id,
+                    occurrences,
+                    user_selected
                 )
-                AND next_word_id = (
-                    SELECT word_id FROM words WHERE word = ?
-                )
+                SELECT
+                    w1.word_id,
+                    w2.word_id,
+                    0,
+                    1
+                FROM words w1
+                CROSS JOIN words w2
+                WHERE w1.word = ?
+                  AND w2.word = ?
+                ON CONFLICT (word_id, next_word_id)
+                DO UPDATE SET
+                    user_selected = bigrams.user_selected + 1
                 """;
 
 
@@ -188,12 +196,10 @@ public class PostgresTransitionRepo implements TransitionRepository{
             stmt.setString(1, previousWord);
             stmt.setString(2, nextWord);
 
-            /** Increment selection count for matching bigram */
             int rowsUpdated = stmt.executeUpdate();
 
-            /** Report error if no matching bigram was found */
             if (rowsUpdated == 0){
-                throw new IllegalArgumentException("Bigram does not exist: " + previousWord + " -> " + nextWord);
+                throw new IllegalArgumentException("Both words must exist in the database: " + previousWord + " -> " + nextWord);
 
             }
         } catch (SQLException e){
