@@ -21,5 +21,10 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    # The database tests connect to Supabase, so the credentials come from repo secrets
     - name: Run tests
       run: ./gradlew test --console=plain
+      env:
+        DB_URL: ${{ secrets.DB_URL }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}

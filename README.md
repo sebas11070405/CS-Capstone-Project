@@ -66,16 +66,7 @@ AI-powered sentence generation and auto-completion tool built in Java with JavaF
 ## References
 
 - **Project Spec:** `docs/project-description.md`
-- **Test Plan:** `docs/test-plan.md`
 - **Database Schema:** `database/schema.sql`
 - **Text Sources:** [Project Gutenberg](https://www.gutenberg.org/) (text-only downloads)
 
----
-
-## Development
-
-See `docs/` for comprehensive documentation:
-- Feature details and usage
-- Test strategy and exit criteria
-- Audit checklists for milestones
-- Code style guide
+Code style guide: `docs/comment-style.md`
