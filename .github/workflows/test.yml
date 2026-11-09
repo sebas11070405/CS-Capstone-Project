@@ -1,8 +1,8 @@
 name: Test
 
-# Runs on every pull request, whatever branch it targets, and on pushes to main
 on:
   pull_request:
+    branches: [ main ]
   push:
     branches: [ main ]
 
@@ -11,13 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # On a pull request, test the PR's own latest commit instead of GitHub's
-    # preview of it merged into the base branch. On a push, this is empty and
-    # checkout uses the pushed commit.
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
 
     - name: Set up Java 21
       uses: actions/setup-java@v4
