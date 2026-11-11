@@ -1,7 +1,19 @@
+/*
+ * Suggests the next word for the sentence a user is typing, and records which suggestion they pick.
+ * Following the assignment, it never guesses a word from its first letters. Suggestions only appear
+ * once the user has finished a word by typing a space, a comma, or a period, which is what
+ * getSuggestionsForText checks. completedWord pulls out the finished word so the UI can also tell
+ * which word to record as the user's choice.
+ *
+ * Works with any TransitionRepository, so tests can use FakeAutocompletRepo and the app can use
+ * PostgresTransitionRepo (which needs DB_URL, DB_USER, and DB_PASSWORD in .env).
+ */
+
 package com.sentencebuilder.autocomplete;
 
 import com.sentencebuilder.model.WordTransition;
 import com.sentencebuilder.repository.TransitionRepository;
+import com.sentencebuilder.tokenizer.Tokenizer;
 
 import java.util.*;
 
@@ -18,6 +30,54 @@ public class Autocomplete {
     public Autocomplete(TransitionRepository repo){
 
         this.repo = repo;
+    }
+
+    /**
+     * Finds the word the user has just finished typing. A word is finished when the text ends with
+     * a space, a comma, or a period, so "the dog " gives "dog" and "the dog," gives "dog", but
+     * "the dog" gives nothing because the user may still be typing. Several breaks in a row are
+     * fine ("dog, "), and the word is cleaned up the same way imported text is, so "Dog" becomes
+     * "dog". Takes everything typed so far and returns the finished word, or empty if the last word
+     * isn't finished or isn't a valid word (such as a number).
+     */
+    public static Optional<String> completedWord(String typedText) {
+        if (typedText == null || typedText.isEmpty() || !isWordBreak(typedText.charAt(typedText.length() - 1))) {
+            return Optional.empty();
+        }
+
+        // Skip the breaks at the end, so "dog, " ends right after the g
+        int wordEnd = typedText.length();
+        while (wordEnd > 0 && isWordBreak(typedText.charAt(wordEnd - 1))) {
+            wordEnd--;
+        }
+
+        // Walk back to the break before the word to find where it starts
+        int wordStart = wordEnd;
+        while (wordStart > 0 && !isWordBreak(typedText.charAt(wordStart - 1))) {
+            wordStart--;
+        }
+
+        // Tokenizer cleans the word the same way the importer does, and returns null if it isn't one
+        return Optional.ofNullable(Tokenizer.normalizeWord(typedText.substring(wordStart, wordEnd)));
+    }
+
+    /**
+     * Gives the next-word suggestions for the text the user has typed so far. Takes everything typed
+     * and the most suggestions to return. Returns an empty list while the user is still in the
+     * middle of a word, or when the finished word has no stored followers, so the UI can call this
+     * on every keystroke and only show choices after a space, comma, or period.
+     */
+    public List<WordTransition> getSuggestionsForText(String typedText, int limit) {
+        Optional<String> finishedWord = completedWord(typedText);
+        if (finishedWord.isEmpty()) {
+            return List.of();
+        }
+        return getSuggestions(finishedWord.get(), limit);
+    }
+
+    /** Says whether a character ends a word: any whitespace (space, tab, new line), a comma, or a period. */
+    private static boolean isWordBreak(char character) {
+        return Character.isWhitespace(character) || character == ',' || character == '.';
     }
 
     /**
