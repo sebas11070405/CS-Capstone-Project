@@ -15,7 +15,7 @@ import java.util.List;
  * made through the autocomplete feature.
  *
  * @see WordTransition
- * @see PostgresTransitionRepo
+ * @see com.sentencebuilder.database.PostgresTransitionRepo
  */
 
 public interface TransitionRepository {
