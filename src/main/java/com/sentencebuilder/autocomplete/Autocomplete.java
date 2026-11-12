@@ -1,4 +1,16 @@
 /*
+AI Assistance: Claude Sonnet 5.5
+
+Prompt used: As per the assignment, the autocomplete should never predict based on the first letters of the word.
+Instead, it must provide next word suggestions only if the user enters a space, comma, or period. In the
+Autocomplete class, implement completedWord which returns an Optional<String> and
+getSuggestionsForText. The completedWord function should return empty if the text does
+not end with whitespaces, a comma, or period. This method should ignore repeated breaks and normalize
+the word using Tokenizer.normalizeWord to match the imported text. Do not change existing functions
+and tests.
+*/
+
+/*
  * Suggests the next word for the sentence a user is typing, and records which suggestion they pick.
  * Following the assignment, it never guesses a word from its first letters. Suggestions only appear
  * once the user has finished a word by typing a space, a comma, or a period, which is what

@@ -1,4 +1,19 @@
 /*
+AI Assistance: Claude Sonnet 5.5
+
+Prompt used: I am the database architect for a Java 21 / JavaFX project with PostgreSQL on Supabase 
+via JDBC. Given database/schema.sql, implement WordListRepository in com.sentencebuilder.database 
+for the Words screen. The repository accepts a Connection similar to WordDetailRepository and returns 
+that file’s WordInfo record. Implement findWords and countWords. Order by word, total_count, start_count, 
+or end_count via an enum corresponding to column names since ORDER BY is not parameterizable and order 
+alphabetically in case of tie to guarantee page non-overlap. Apply filters by prefix (lowercase), minimum 
+total, begins sentence, and ends sentence, constructing WHERE clause from the active filters with parameterization. 
+Ensure limit >= 1 and offset >= 0. See docs/comment-style.md. Implement WordListRepositoryTest similar to 
+WordDetailRepositoryTest: create fake words with a unique prefix, rollback, test all order options with tie breaks, 
+every filter, pagination, counts, wildcard characters in prefix, and invalid data.
+ */
+
+/*
  * Tests WordListRepository on the shared database. Every test seeds fake words and rolls back at
  * the end, so nothing sticks around. Each query filters on the fake words' prefix, so real words in
  * the shared database never show up in the results. Needs .env.

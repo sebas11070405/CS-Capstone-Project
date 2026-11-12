@@ -1,4 +1,14 @@
 /*
+AI Assistance: Claude Sonnet 5.5
+
+Prompt used: Words from com.sentencebuilder.generator package come in all lower case without any capital letter or full stop.
+Introduce a new SentenceFormatter class with a static format method that removes extra spaces, makes the first letter capitalized, 
+capitalizes the pronoun “i” and its contractions without making any changes to words such as “it” or “island”, and ends with a full 
+stop except when there is a full stop, exclamation mark or question mark at the end of the sentence. The result should be an empty 
+string for null or blank input. Add a generateFormattedSentence() default method to the Generator interface.
+*/
+
+/*
  * Turns the raw text a generator returns into a sentence that reads normally. Generators build
  * sentences from lowercase words with no punctuation, so this capitalizes the first word, writes
  * the pronoun "I" (and I'm, I'll, I've, I'd) with a capital, tidies the spacing, and ends the

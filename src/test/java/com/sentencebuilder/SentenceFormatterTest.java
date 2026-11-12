@@ -1,4 +1,14 @@
 /*
+AI Assistance: Claude Sonnet 5.5
+
+Prompt used: Words from com.sentencebuilder.generator package come in all lower case without any capital letter or full stop.
+Introduce a new SentenceFormatter class with a static format method that removes extra spaces, makes the first letter capitalized, 
+capitalizes the pronoun “i” and its contractions without making any changes to words such as “it” or “island”, and ends with a full 
+stop except when there is a full stop, exclamation mark or question mark at the end of the sentence. The result should be an empty 
+string for null or blank input. Add a generateFormattedSentence() default method to the Generator interface.
+*/
+
+/*
  * Tests SentenceFormatter and Generator.generateFormattedSentence. Needs no database or .env.
  */
 
