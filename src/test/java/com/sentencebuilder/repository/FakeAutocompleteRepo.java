@@ -2,13 +2,13 @@ package com.sentencebuilder.repository;
 import com.sentencebuilder.model.WordTransition;
 import java.util.*;
 
-public class FakeAutocompletRepo implements TransitionRepository {
+public class FakeAutocompleteRepo implements TransitionRepository {
 
     private final Map<String, List<WordTransition>> transitions = new HashMap<>();
 
     private final Set<String> words = new HashSet<>();
 
-    public FakeAutocompletRepo() {
+    public FakeAutocompleteRepo() {
         words.addAll(List.of("the", "boy", "dog", "girl", "elephant"));
 
         transitions.put("the", new ArrayList<>(List.of(
