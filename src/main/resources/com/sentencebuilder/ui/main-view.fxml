@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The main window's tabs. Import holds the Import Text File button and the status label
-  that reports its progress, both handled by MainController. Words loads the word lookup
-  panel from words-view.fxml, which brings its own controller (WordsController).
+  The main window's tabs. Import holds the Import Text File button, a progress bar shown
+  only while an import runs, and the status label that reports its progress and result,
+  all handled by MainController. Words loads the word lookup panel from words-view.fxml,
+  which brings its own controller (WordsController).
 -->
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.VBox?>
@@ -21,6 +23,7 @@
       </padding>
 
       <Button fx:id="importButton" text="Import Text File…" onAction="#onImport"/>
+      <ProgressBar fx:id="progressBar" prefWidth="300.0" visible="false" managed="false"/>
       <Label fx:id="statusLabel" wrapText="true"/>
     </VBox>
   </Tab>
