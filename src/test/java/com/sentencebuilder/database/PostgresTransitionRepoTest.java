@@ -1,4 +1,4 @@
-package com.sentencebuilder.repository;
+package com.sentencebuilder.database;
 
 import com.sentencebuilder.model.WordTransition;
 import org.junit.jupiter.api.Test;
