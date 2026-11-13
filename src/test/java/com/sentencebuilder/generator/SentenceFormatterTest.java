@@ -1,5 +1,5 @@
 /*
- * Tests SentenceFormatter and Generator.generateFormattedSentence. Needs no database or .env.
+ * Tests SentenceFormatter and AbstractGenerator.generateFormattedSentence. Needs no database or .env.
  */
 
 package com.sentencebuilder.generator;
@@ -53,7 +53,13 @@ class SentenceFormatterTest {
 
     @Test
     void generatorsCanReturnTheFormattedSentence() {
-        Generator fixed = () -> "i saw the dog";
+        // A tiny generator that always returns the same raw sentence
+        AbstractGenerator fixed = new AbstractGenerator(10) {
+            @Override
+            public String generateSentence() {
+                return "i saw the dog";
+            }
+        };
         assertEquals("i saw the dog", fixed.generateSentence());
         assertEquals("I saw the dog.", fixed.generateFormattedSentence());
     }

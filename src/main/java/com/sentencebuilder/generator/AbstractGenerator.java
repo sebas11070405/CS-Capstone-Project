@@ -1,12 +1,12 @@
 /*
- * Holds what every generator shares: the maximum sentence length and helpers
- * for cleaning and checking a generated sentence. Each generation algorithm
+ * Base class for every sentence generation algorithm, so the UI can run any
+ * of them the same way. Holds the maximum sentence length; each algorithm
  * extends this class and implements generateSentence.
  */
 
 package com.sentencebuilder.generator;
 
-public abstract class AbstractGenerator implements Generator{
+public abstract class AbstractGenerator {
 
     protected int maxWords;   // Longest sentence a generator may build, in words
 
@@ -16,4 +16,6 @@ public abstract class AbstractGenerator implements Generator{
         this.maxWords = maxWords;
     }
 
+    /** Generates one sentence of at most maxWords words and returns its text. */
+    public abstract String generateSentence();
 }
