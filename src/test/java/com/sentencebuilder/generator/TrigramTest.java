@@ -3,9 +3,9 @@ package com.sentencebuilder.generator;
 import com.sentencebuilder.repository.TransitionRepository;
 import com.sentencebuilder.repository.TrigramRepo;
 
-import com.sentencebuilder.repository.PostgresTransitionRepo;
+import com.sentencebuilder.database.PostgresTransitionRepo;
 import org.junit.jupiter.api.Test;
-import com.sentencebuilder.repository.PostgresTrigramRepo;
+import com.sentencebuilder.database.PostgresTrigramRepo;
 
 import static org.junit.jupiter.api.Assertions.*;
 

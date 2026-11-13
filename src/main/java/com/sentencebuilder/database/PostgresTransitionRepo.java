@@ -1,6 +1,6 @@
-package com.sentencebuilder.repository;
+package com.sentencebuilder.database;
 
-import com.sentencebuilder.database.Database;
+import com.sentencebuilder.repository.TransitionRepository;
 import com.sentencebuilder.model.WordTransition;
 
 import java.sql.*;
