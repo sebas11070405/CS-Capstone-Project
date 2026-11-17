@@ -1,12 +1,12 @@
 /*
  * Tests that Autocomplete only offers next words once the user has finished a word with a space,
- * a comma, or a period. Uses FakeAutocompletRepo, so it needs no database or .env.
+ * a comma, or a period. Uses FakeAutocompleteRepo, so it needs no database or .env.
  */
 
 package com.sentencebuilder.autocomplete;
 
 import com.sentencebuilder.model.WordTransition;
-import com.sentencebuilder.repository.FakeAutocompletRepo;
+import com.sentencebuilder.repository.FakeAutocompleteRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +23,7 @@ class AutocompleteTypedTextTest {
 
     @BeforeEach
     void setUp() {
-        autocomplete = new Autocomplete(new FakeAutocompletRepo());
+        autocomplete = new Autocomplete(new FakeAutocompleteRepo());
     }
 
     @Test
