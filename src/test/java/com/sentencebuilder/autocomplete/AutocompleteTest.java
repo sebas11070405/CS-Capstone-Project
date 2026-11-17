@@ -1,7 +1,7 @@
 package com.sentencebuilder.autocomplete;
 
 import com.sentencebuilder.model.WordTransition;
-import com.sentencebuilder.repository.FakeAutocompletRepo;
+import com.sentencebuilder.repository.FakeAutocompleteRepo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -9,12 +9,12 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 public class AutocompleteTest {
 
-    private FakeAutocompletRepo repo;
+    private FakeAutocompleteRepo repo;
     private Autocomplete autocomplete;
 
     @BeforeEach
     public void setUp(){
-        repo = new FakeAutocompletRepo();
+        repo = new FakeAutocompleteRepo();
         autocomplete = new Autocomplete(repo);
     }
     @Test

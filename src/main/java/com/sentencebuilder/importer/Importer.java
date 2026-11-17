@@ -10,13 +10,19 @@
  * import is. Completion (a fraction of 1) is reported only after the
  * transaction commits, so a failed import never looks finished.
  *
+ * importGenerated saves a list of generated sentences the same way, with
+ * source_type 'generated' and without progress reporting. Each sentence is
+ * counted on its own, so no pair or triple spans two of them. Batches are
+ * never treated as duplicates, so the same sentences can be fed back in more
+ * than once, and a batch never blocks a file with the same text.
+ *
  * Needs DB_URL, DB_USER, and DB_PASSWORD in .env (see Database).
  *
  * AI-assisted: Claude Sonnet 5.5 (write order for bigrams and trigrams)
  *
  * Prompt: see src/main/java/com/sentencebuilder/database/CorpusRepository.java
  *
- * AI-assisted: Claude Code (progress reporting, ported from PR #16)
+ * AI-assisted: Claude Code (progress reporting and generated-sentence imports, ported from PR #16)
  *
  * Prompt:
  * Create a new branch from the latest main called importer-completion. Finish the existing importer
@@ -54,6 +60,27 @@
  * commits because they have no triples. Keep every pre-commit progress value below 1 and report 1
  * only after a successful commit. Add regression tests for both cases, including a failure before
  * commit. Keep the change focused and rerun the tests.
+ *
+ * Follow-up prompt:
+ * Create a new branch from the latest main called generated-imports. Extract the generated-sentence
+ * import feature from PR #16 and adapt it to the current Importer, CorpusStats, CorpusRepository, and
+ * Database.inTransaction structure.
+ *
+ * Accept a list of generated sentences, keeping each sentence separate when counting words, bigrams,
+ * and trigrams. Save the batch with source_type = 'generated' and allow repeated batches. Keep all
+ * writes in one transaction and preserve duplicate detection for file imports.
+ *
+ * Reuse the existing counting and database methods. Include only generated imports and focused
+ * tests—no generator changes, UI, progress reporting, or backfill.
+ *
+ * Follow docs/comment-style.md, preserve the original attribution, and add this follow-up prompt. Run
+ * the tests, disclose any exclusions, and summarize before opening a PR.
+ *
+ * Follow-up prompt:
+ * Rebase the generated-imports branch for PR #24 onto the latest main. Resolve the conflicts while
+ * preserving both file-import progress reporting and generated-sentence imports, including their tests
+ * and prompt headers. Run the relevant tests without changing shared database data, then summarize
+ * before pushing.
  */
 
 package com.sentencebuilder.importer;
@@ -70,6 +97,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class Importer {
 
@@ -126,6 +154,26 @@ public class Importer {
     }
 
     /**
+     * Imports a batch of generated sentences, one sentence per string, and
+     * returns their counts. The batch is saved with source_type 'generated' and
+     * may be imported again. Nothing is written if any step fails. Throws
+     * IllegalArgumentException if the sentences have no words, since an empty
+     * batch would only add an empty source_files row.
+     */
+    public CorpusStats importGenerated(List<String> sentences) throws SQLException {
+        CorpusStats stats = CorpusStats.fromSentences(sentences);
+        if (stats.wordCount() == 0) {
+            throw new IllegalArgumentException("The generated sentences have no words to import");
+        }
+
+        String batchName = String.format("Generated batch of %d sentences", sentences.size());
+        return Database.inTransaction(conn -> {
+            writeGenerated(conn, batchName, stats);
+            return stats;
+        });
+    }
+
+    /**
      * Writes the source_files row and the word, bigram, and trigram counts on the
      * given connection without committing or reporting progress. Package-private
      * so ImporterTest can run it inside a transaction it rolls back.
@@ -149,7 +197,29 @@ public class Importer {
         if (!repository.insertSourceFile(fileName, stats.wordCount(), stats.contentHash())) {
             throw duplicateOf(repository, stats.contentHash());
         }
+        addCounts(repository, stats, fileName, listener);
+    }
 
+    /**
+     * Writes a 'generated' source_files row and the batch's word, bigram, and
+     * trigram counts on the given connection without committing. There is no
+     * duplicate check, so the same batch can be written again. Package-private
+     * so ImporterTest can run it inside a transaction it rolls back.
+     */
+    static void writeGenerated(Connection conn, String batchName, CorpusStats stats) throws SQLException {
+        CorpusRepository repository = new CorpusRepository(conn);
+        repository.insertGeneratedBatch(batchName, stats.wordCount(), stats.contentHash());
+        addCounts(repository, stats, batchName, ProgressListener.NONE);
+    }
+
+    /**
+     * Adds the word, bigram, and trigram counts, shared by file and generated
+     * imports. Reports each table to the listener as it starts, using label (the
+     * file or batch name) in the messages. The fraction never reaches 1 here,
+     * because only importFile reports completion, after the commit.
+     */
+    private static void addCounts(CorpusRepository repository, CorpusStats stats, String label,
+                                  ProgressListener listener) throws SQLException {
         // Each table is saved in one statement, so progress moves once per table. It's weighted by row
         // count, since each row costs about the same to save. The commit counts as one more unit, so
         // every fraction here stays below 1 even when a file has no pairs or triples.
@@ -157,11 +227,11 @@ public class Importer {
         int bigramRows = stats.bigrams().size();
         double totalUnits = wordRows + bigramRows + stats.trigrams().size() + 1;
 
-        listener.update(0, "Saving " + fileName + ": words…");
+        listener.update(0, "Saving " + label + ": words…");
         repository.addWordCounts(stats.words());   // First, because the n-gram queries look up word ids
-        listener.update(wordRows / totalUnits, "Saving " + fileName + ": word pairs…");
+        listener.update(wordRows / totalUnits, "Saving " + label + ": word pairs…");
         repository.addBigramCounts(stats.bigrams());
-        listener.update((wordRows + bigramRows) / totalUnits, "Saving " + fileName + ": word triples…");
+        listener.update((wordRows + bigramRows) / totalUnits, "Saving " + label + ": word triples…");
         repository.addTrigramCounts(stats.trigrams());
     }
 

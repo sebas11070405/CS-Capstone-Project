@@ -1,6 +1,6 @@
 package com.sentencebuilder.generator;
 
-import com.sentencebuilder.repository.PostgresTransitionRepo;
+import com.sentencebuilder.database.PostgresTransitionRepo;
 import com.sentencebuilder.repository.TransitionRepository;
 import org.junit.jupiter.api.Test;
 

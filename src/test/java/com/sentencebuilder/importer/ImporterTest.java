@@ -1,10 +1,16 @@
 /*
  * Checks that imports add to existing word counts, that the same text is
  * rejected even under another file name, and that progress is reported in
- * order with completion only after the commit. They need a valid .env because
- * they write to the shared Supabase database. Each test runs inside a
- * transaction that is rolled back, so nothing is left behind. Run them with
- * ./gradlew test.
+ * order with completion only after the commit. Also checks that generated
+ * batches are saved as 'generated', can repeat, keep their sentences apart,
+ * don't block a file with the same text, and roll back completely on failure.
+ *
+ * They need a valid .env because they write to the shared Supabase database.
+ * Each test runs inside a transaction that is rolled back, so nothing is left
+ * behind. The tests that go through Database.inTransaction commit nothing,
+ * because their imports fail before the commit. Run them with ./gradlew test.
+ *
+ * AI-assisted: Claude Code (progress and generated-batch tests)
  *
  * Prompt: see src/main/java/com/sentencebuilder/importer/Importer.java
  */
@@ -35,8 +41,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ImporterTest {
 
-    // Made up so it can't collide with real words already in the shared database
+    // Made up so they can't collide with real words already in the shared database
     private static final String WORD = "zzqtest";
+    private static final String OTHER = "zzqother";
+
+    // Two generated sentences with no final punctuation. Counted together, they would add
+    // OTHER -> OTHER, which a separate count never does.
+    private static final List<String> BATCH = List.of("Zzqtest zzqother", "zzqother zzqtest");
 
     // 3 distinct words, 2 distinct pairs (zzqalpha zzqbeta appears twice), and 1 triple
     private static final String PROGRESS_TEXT = "Zzqprogress zzqalpha zzqbeta. Zzqalpha zzqbeta.";
@@ -175,6 +186,88 @@ class ImporterTest {
             try (ResultSet rs = statement.executeQuery()) {
                 rs.next();
                 assertEquals(0, rs.getInt(1), "source_files row was committed");
+            }
+        }
+    }
+
+    @Test
+    void generatedBatchesCanRepeat() throws Exception {
+        inRolledBackTransaction(conn -> {
+            CorpusStats batch = CorpusStats.fromSentences(BATCH);
+            Importer.writeGenerated(conn, "zzqtest batch", batch);
+            Importer.writeGenerated(conn, "zzqtest batch", batch);
+
+            assertCounts(conn, 4, 2, 2);
+            assertEquals(2, bigramCount(conn, WORD, OTHER));
+            assertEquals(2, bigramCount(conn, OTHER, WORD));
+            assertEquals(0, bigramCount(conn, OTHER, OTHER), "pair crossed two generated sentences");
+            assertEquals(2, countRows(conn,
+                    "SELECT count(*) FROM source_files WHERE content_hash = ? AND source_type = 'generated'",
+                    batch.contentHash()));
+        });
+    }
+
+    @Test
+    void generatedBatchDoesNotBlockTheSameTextAsAFile() throws Exception {
+        inRolledBackTransaction(conn -> {
+            String text = "Zzqtest zzqother. Zzqother zzqtest.";
+            Importer.writeGenerated(conn, "zzqtest batch", CorpusStats.fromSentences(BATCH));
+            Importer.write(conn, "zzqtest.txt", stats(text));
+
+            // The file is now in, so the same text as a file is still a duplicate
+            assertThrows(DuplicateImportException.class, () ->
+                    Importer.write(conn, "zzqtest-copy.txt", stats(text)));
+            assertCounts(conn, 4, 2, 2);
+        });
+    }
+
+    @Test
+    void failedGeneratedImportRollsBackEverything() throws Exception {
+        // The source_files row is written first, then a word too long for words.word makes saving the
+        // words fail
+        CorpusStats stats = new CorpusStats();
+        stats.addSentence(List.of(WORD, "zzq".repeat(40)));
+        String batchName = "zzqtest failed batch";
+
+        assertThrows(SQLException.class, () -> Database.inTransaction(conn -> {
+            Importer.writeGenerated(conn, batchName, stats);
+            return null;
+        }));
+
+        try (Connection conn = Database.getConnection()) {
+            assertEquals(0, countRows(conn, "SELECT count(*) FROM source_files WHERE file_name = ?", batchName),
+                    "source_files row was not rolled back");
+        }
+    }
+
+    @Test
+    void generatedBatchWithNoWordsIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new Importer().importGenerated(List.of("", "42")));
+    }
+
+    /** Returns how often first was followed by second in the bigrams table, or 0 if never. */
+    private static int bigramCount(Connection conn, String first, String second) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement("""
+                SELECT b.occurrences FROM bigrams b
+                JOIN words w1 ON w1.word_id = b.word_id
+                JOIN words w2 ON w2.word_id = b.next_word_id
+                WHERE w1.word = ? AND w2.word = ?
+                """)) {
+            statement.setString(1, first);
+            statement.setString(2, second);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    /** Runs a count(*) query that takes one string parameter and returns the count. */
+    private static int countRows(Connection conn, String sql, String value) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(sql)) {
+            statement.setString(1, value);
+            try (ResultSet rs = statement.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
             }
         }
     }

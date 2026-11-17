@@ -5,13 +5,18 @@
  * commits, so the caller decides the transaction. Importer uses
  * Database.inTransaction so a failed import leaves nothing behind.
  *
+ * Files are recorded with insertSourceFile, which refuses text that was
+ * already imported as a file. Batches of generated sentences are recorded
+ * with insertGeneratedBatch, which never refuses, because the same batch may
+ * be fed back in more than once.
+ *
  * Counts are added to what is already stored, so importing a second file
  * appends to the first. Write words before bigrams and trigrams, because
  * those queries look up word ids in the words table.
  *
  * Needs the tables from database/schema.sql.
  *
- * AI-assisted: Claude Sonnet 5.5 (bigram and trigram upserts)
+ * AI-assisted: Claude Sonnet 5.5 (bigram and trigram upserts), Claude Code (insertGeneratedBatch)
  *
  * Prompt:
  * The following is our Importer.java, CorpusStats.java, and schema.sql.
@@ -24,6 +29,8 @@
  * duplicates checking logic. Document every query and method as per
  * docs/comment-style.md. Update the header comment which still mentions
  * bigrams and trigrams have not been written out.
+ *
+ * Prompt for insertGeneratedBatch: see src/main/java/com/sentencebuilder/importer/Importer.java
  */
 
 package com.sentencebuilder.database;
@@ -48,6 +55,12 @@ public final class CorpusRepository {
             INSERT INTO source_files (file_name, source_type, word_count, content_hash)
             VALUES (?, 'file', ?, ?)
             ON CONFLICT (content_hash) WHERE source_type = 'file' DO NOTHING
+            """;
+
+    // No ON CONFLICT: the unique hash index only covers 'file' rows, so a batch can always repeat
+    private static final String INSERT_GENERATED = """
+            INSERT INTO source_files (file_name, source_type, word_count, content_hash)
+            VALUES (?, 'generated', ?, ?)
             """;
 
     // Finds the earlier import of the same text so the duplicate error can name it
@@ -111,6 +124,20 @@ public final class CorpusRepository {
             statement.setInt(2, wordCount);
             statement.setString(3, contentHash);
             return statement.executeUpdate() == 1;
+        }
+    }
+
+    /**
+     * Records a batch of generated sentences in source_files with source_type
+     * 'generated'. Unlike insertSourceFile it always adds a row, even if the same
+     * batch was saved before.
+     */
+    public void insertGeneratedBatch(String batchName, int wordCount, String contentHash) throws SQLException {
+        try (PreparedStatement statement = conn.prepareStatement(INSERT_GENERATED)) {
+            statement.setString(1, batchName);
+            statement.setInt(2, wordCount);
+            statement.setString(3, contentHash);
+            statement.executeUpdate();
         }
     }
 

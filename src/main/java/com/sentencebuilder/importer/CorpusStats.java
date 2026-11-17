@@ -6,8 +6,13 @@
  * tokenized text. The hash catches a repeat import of the same text, even
  * when the formatting or file name is different.
  *
- * Build one with CorpusStats.from(reader), or create one and call addSentence
- * for each tokenized sentence.
+ * Build one with CorpusStats.from(reader) for a file, fromSentences(list) for
+ * a batch of generated sentences, or create one and call addSentence for each
+ * tokenized sentence.
+ *
+ * AI-assisted: Claude Code (fromSentences)
+ *
+ * Prompt: see src/main/java/com/sentencebuilder/importer/Importer.java
  */
 
 package com.sentencebuilder.importer;
@@ -46,6 +51,22 @@ public class CorpusStats {
         List<String> sentence;
         while ((sentence = tokenizer.nextSentence()) != null) {
             stats.addSentence(sentence);
+        }
+        return stats;
+    }
+
+    /**
+     * Tokenizes a batch of generated sentences and returns their counts. Each
+     * string is tokenized on its own, so no pair or triple spans two generated
+     * sentences, even when one has no final punctuation.
+     */
+    public static CorpusStats fromSentences(List<String> sentences) {
+        CorpusStats stats = new CorpusStats();
+        // Tokenizing the strings one at a time is what keeps the sentences apart
+        for (String text : sentences) {
+            for (List<String> sentence : Tokenizer.tokenize(text)) {
+                stats.addSentence(sentence);
+            }
         }
         return stats;
     }
