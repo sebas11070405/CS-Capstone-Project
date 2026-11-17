@@ -32,14 +32,20 @@
  * Follow docs/comment-style.md and include this prompt in the header. Add focused tests without
  * changing shared database data. Run the tests, disclose any exclusions, and summarize before pushing
  * or opening a PR.
+ *
+ * Follow-up prompt:
+ * Update the batch-generation branch for PR #39 with the latest main. Fix the PostgresTransitionRepo
+ * and PostgresTrigramRepo imports to use their new database package, and remove the incorrect claim
+ * that the Algorithm names come from schema.sql. Preserve the existing behavior and prompt attribution,
+ * add this follow-up prompt, and rerun the tests. Summarize before pushing.
  */
 
 package com.sentencebuilder.generator;
 
 import com.sentencebuilder.database.Database;
+import com.sentencebuilder.database.PostgresTransitionRepo;
+import com.sentencebuilder.database.PostgresTrigramRepo;
 import com.sentencebuilder.database.StartWordRepository;
-import com.sentencebuilder.repository.PostgresTransitionRepo;
-import com.sentencebuilder.repository.PostgresTrigramRepo;
 import com.sentencebuilder.repository.TransitionRepository;
 import com.sentencebuilder.repository.TrigramRepo;
 
@@ -51,7 +57,7 @@ import java.util.Optional;
 
 public class SentenceBatchService {
 
-    /** The generation algorithms a batch can use, named as in database/schema.sql. */
+    /** The generation algorithms a batch can use, each backed by one of the existing generators. */
     public enum Algorithm {
         MOST_LIKELY,       // FrequentWordGenerator: always the most frequent next word
         WEIGHTED_RANDOM,   // MarkovGenerator: next word chosen in proportion to how often it follows
