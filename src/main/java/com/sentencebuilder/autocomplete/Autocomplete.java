@@ -8,17 +8,15 @@ getSuggestionsForText. The completedWord function should return empty if the tex
 not end with whitespaces, a comma, or period. This method should ignore repeated breaks and normalize
 the word using Tokenizer.normalizeWord to match the imported text. Do not change existing functions
 and tests.
-*/
 
-/*
- * Suggests the next word for the sentence a user is typing, and records which suggestion they pick.
- * Following the assignment, it never guesses a word from its first letters. Suggestions only appear
- * once the user has finished a word by typing a space, a comma, or a period, which is what
- * getSuggestionsForText checks. completedWord pulls out the finished word so the UI can also tell
- * which word to record as the user's choice.
- *
- * Works with any TransitionRepository, so tests can use FakeAutocompleteRepo and the app can use
- * PostgresTransitionRepo (which needs DB_URL, DB_USER, and DB_PASSWORD in .env).
+Description:
+ Suggests the next word for the sentence a user is typing, and records which suggestion they pick.
+ Following the assignment, it never guesses a word from its first letters. Suggestions only appear
+ once the user has finished a word by typing a space, a comma, or a period, which is what
+ getSuggestionsForText checks. completedWord pulls out the finished word so the UI can also tell
+ which word to record as the user's choice. Works with any TransitionRepository, so tests can use 
+ FakeAutocompleteRepo and the app can use PostgresTransitionRepo (which needs DB_URL, DB_USER, and 
+ DB_PASSWORD in .env).
  */
 
 package com.sentencebuilder.autocomplete;
