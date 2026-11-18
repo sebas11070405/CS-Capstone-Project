@@ -4,9 +4,10 @@
  * the pronoun "I" (and I'm, I'll, I've, I'd) with a capital, tidies the spacing, and ends the
  * sentence with a period if it has no ending punctuation yet.
  *
- * Call SentenceFormatter.format(text) on a generator's output, or call generateFormattedSentence()
- * on any Generator. It only changes how a sentence looks, never which words it contains, and it
- * can't know which words are names, so those stay lowercase.
+ * Call SentenceFormatter.format(text) only when showing a sentence to the user. Save and import the
+ * raw text instead, so duplicate checks always compare the same words. It only changes how a
+ * sentence looks, never which words it contains, and it can't know which words are names, so those
+ * stay lowercase.
  */
 
 package com.sentencebuilder.generator;

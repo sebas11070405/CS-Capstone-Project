@@ -18,13 +18,4 @@ public abstract class AbstractGenerator {
 
     /** Generates one sentence of at most maxWords words and returns its text. */
     public abstract String generateSentence();
-
-    /**
-     * Generates one sentence and returns it formatted for display, with a capital first letter,
-     * a capital "I", and ending punctuation. The UI shows and saves this version, while
-     * generateSentence stays the raw words so the generators can be tested directly.
-     */
-    public String generateFormattedSentence() {
-        return SentenceFormatter.format(generateSentence());
-    }
 }

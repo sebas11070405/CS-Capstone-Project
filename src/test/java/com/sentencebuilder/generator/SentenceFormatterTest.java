@@ -1,5 +1,5 @@
 /*
- * Tests SentenceFormatter and AbstractGenerator.generateFormattedSentence. Needs no database or .env.
+ * Tests SentenceFormatter.format. Needs no database or .env.
  */
 
 package com.sentencebuilder.generator;
@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class SentenceFormatterTest {
+class SentenceFormatterTest
+{
 
     @Test
     void capitalizesTheFirstWordAndEndsWithAPeriod() {
@@ -49,18 +50,5 @@ class SentenceFormatterTest {
         assertEquals("", SentenceFormatter.format(""));
         assertEquals("", SentenceFormatter.format("   "));
         assertEquals("", SentenceFormatter.format(null));
-    }
-
-    @Test
-    void generatorsCanReturnTheFormattedSentence() {
-        // A tiny generator that always returns the same raw sentence
-        AbstractGenerator fixed = new AbstractGenerator(10) {
-            @Override
-            public String generateSentence() {
-                return "i saw the dog";
-            }
-        };
-        assertEquals("i saw the dog", fixed.generateSentence());
-        assertEquals("I saw the dog.", fixed.generateFormattedSentence());
     }
 }
