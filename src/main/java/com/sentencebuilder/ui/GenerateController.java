@@ -11,15 +11,6 @@
  * opens, and the result text shows which key is missing.
  *
  * AI-assisted: Claude, Claude Code
- *
- * Prompt:
- * TODO(Mahale03): paste the prompt that produced the original GenerateScreen word for word
- *
- * Follow-up prompt:
- * Ok, can you refactor pr 40 to follow the guidelines we requested?
- *
- * Follow-up prompt:
- * use pr 54 comments, and remove the bottom half of the generate tab, pr 54 can take care of it
  */
 
 package com.sentencebuilder.ui;
