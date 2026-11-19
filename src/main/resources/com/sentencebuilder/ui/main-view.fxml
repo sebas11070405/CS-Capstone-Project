@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   The main window's tabs. Import holds the Import Text File button, a progress bar shown
-  only while an import runs, and the status label that reports its progress and result,
+  only while an import runs, the status label that reports its progress and result, and a
+  table of every imported file and generated batch with a word total underneath,
   all handled by MainController. Words loads the word lookup panel from words-view.fxml,
   which brings its own controller (WordsController). Batch loads the batch generation panel
   from batch-view.fxml, which brings BatchController.
@@ -12,12 +13,14 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.VBox?>
 
 <TabPane tabClosingPolicy="UNAVAILABLE" xmlns:fx="http://javafx.com/fxml"
          fx:controller="com.sentencebuilder.ui.MainController">
-  <Tab text="Import">
+  <Tab fx:id="importTab" text="Import">
     <VBox alignment="CENTER" spacing="20.0">
       <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
@@ -26,6 +29,20 @@
       <Button fx:id="importButton" text="Import Text File…" onAction="#onImport"/>
       <ProgressBar fx:id="progressBar" prefWidth="300.0" visible="false" managed="false"/>
       <Label fx:id="statusLabel" wrapText="true"/>
+
+      <TableView fx:id="sourcesTable" VBox.vgrow="ALWAYS">
+        <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+        <placeholder>
+          <Label text="Nothing has been imported yet."/>
+        </placeholder>
+        <columns>
+          <TableColumn fx:id="sourceNameColumn" text="Name"/>
+          <TableColumn fx:id="sourceTypeColumn" text="Type"/>
+          <TableColumn fx:id="sourceWordsColumn" text="Words"/>
+          <TableColumn fx:id="sourceTimeColumn" text="Imported"/>
+        </columns>
+      </TableView>
+      <Label fx:id="sourcesSummary" wrapText="true"/>
     </VBox>
   </Tab>
 
