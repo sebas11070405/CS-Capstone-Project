@@ -35,11 +35,8 @@ public class FakeAutocompleteRepo implements TransitionRepository {
 
     @Override
     public void recordSelection(String previousWord, String nextWord) {
-        List<WordTransition> existing = transitions.get(previousWord);
-
-        if (existing == null) {
-            return;
-        }
+        // Ensures a transition list exists for previousWord even if it was just added.
+        List<WordTransition> existing = transitions.computeIfAbsent(previousWord, key -> new ArrayList<>());
 
         for (int i = 0; i < existing.size(); i++){
             WordTransition transitions = existing.get(i);
@@ -50,5 +47,8 @@ public class FakeAutocompleteRepo implements TransitionRepository {
                 return;
             }
         }
+
+        // Create a new transition if one does not exist
+        existing.add(new WordTransition(nextWord, 0, 1));
     }
 }
