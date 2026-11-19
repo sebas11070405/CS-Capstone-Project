@@ -1,7 +1,7 @@
 /*
  * Starts the JavaFX application and opens the main window. The window's layout
  * is in main-view.fxml, which has an Import tab (handled by MainController), a
- * Generate tab (GenerateScreen), and a Words tab (handled by WordsController).
+ * Generate tab (handled by GenerateController), and a Words tab (handled by WordsController).
  * Run it from the repository root with ./gradlew run.
  */
 

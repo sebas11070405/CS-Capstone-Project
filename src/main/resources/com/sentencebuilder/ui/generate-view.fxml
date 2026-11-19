@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Generate panel. The top half makes one sentence from a typed starting word with the
+  algorithm picked in the drop-down. The bottom half makes a batch of sentences from random
+  starting words and can add that batch to the corpus. GenerateController runs it.
+-->
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="8.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.sentencebuilder.ui.GenerateController">
+  <padding>
+    <Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/>
+  </padding>
+
+  <Label text="Generate Sentences" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+  <HBox spacing="8.0" alignment="BOTTOM_LEFT">
+    <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+      <Label text="Starting word"/>
+      <TextField fx:id="startWordField" promptText="e.g. the" onAction="#onGenerate"/>
+    </VBox>
+    <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+      <Label text="Algorithm"/>
+      <ComboBox fx:id="algorithmBox" maxWidth="Infinity"/>
+    </VBox>
+    <Button fx:id="generateButton" text="Generate" onAction="#onGenerate"/>
+  </HBox>
+
+  <Label fx:id="resultLabel" wrapText="true" text="Type a starting word and press Generate."/>
+
+  <Separator/>
+
+  <Label text="How many"/>
+  <HBox spacing="8.0">
+    <TextField fx:id="countField" text="10" prefColumnCount="4"/>
+    <Button fx:id="randomButton" text="Generate random sentences" onAction="#onGenerateRandom"/>
+  </HBox>
+
+  <ListView fx:id="sentenceList" VBox.vgrow="ALWAYS">
+    <placeholder>
+      <Label text="Generated sentences will appear here."/>
+    </placeholder>
+  </ListView>
+
+  <HBox spacing="12.0" alignment="CENTER_LEFT">
+    <Button fx:id="addButton" text="Add to corpus" onAction="#onAddToCorpus"/>
+    <Label fx:id="statusLabel" wrapText="true"/>
+  </HBox>
+</VBox>

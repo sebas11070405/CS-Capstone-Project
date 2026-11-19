@@ -2,9 +2,9 @@
 <!--
   The main window's tabs. Import holds the Import Text File button, a progress bar shown
   only while an import runs, and the status label that reports its progress and result,
-  all handled by MainController. Generate is the GenerateScreen class, which builds its own
-  controls. Words loads the word lookup panel from words-view.fxml, which brings its own
-  controller (WordsController).
+  all handled by MainController. Generate loads the sentence generation panel from
+  generate-view.fxml, which brings its own controller (GenerateController). Words loads the
+  word lookup panel from words-view.fxml, which brings its own controller (WordsController).
 -->
 
 <?import javafx.geometry.Insets?>
@@ -14,7 +14,6 @@
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.VBox?>
-<?import com.sentencebuilder.ui.GenerateScreen?>
 
 <TabPane tabClosingPolicy="UNAVAILABLE" xmlns:fx="http://javafx.com/fxml"
          fx:controller="com.sentencebuilder.ui.MainController">
@@ -31,7 +30,7 @@
   </Tab>
 
   <Tab text="Generate">
-    <GenerateScreen/>
+    <fx:include source="generate-view.fxml"/>
   </Tab>
 
   <Tab text="Words">
