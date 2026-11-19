@@ -28,6 +28,10 @@
     </VBox>
   </Tab>
 
+  <Tab text="Generate">
+    <fx:include source="generate-view.fxml"/>
+  </Tab>
+
   <Tab text="Words">
     <fx:include source="words-view.fxml"/>
   </Tab>

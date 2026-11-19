@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Generate panel: type a starting word, pick an algorithm, and press Generate to make one
+  sentence from it. GenerateController runs it.
+-->
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="8.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.sentencebuilder.ui.GenerateController">
+  <padding>
+    <Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/>
+  </padding>
+
+  <Label text="Generate Sentences" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+  <HBox spacing="8.0" alignment="BOTTOM_LEFT">
+    <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+      <Label text="Starting word"/>
+      <TextField fx:id="startWordField" promptText="e.g. the" onAction="#onGenerate"/>
+    </VBox>
+    <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+      <Label text="Algorithm"/>
+      <ComboBox fx:id="algorithmBox" maxWidth="Infinity"/>
+    </VBox>
+    <Button fx:id="generateButton" text="Generate" onAction="#onGenerate"/>
+  </HBox>
+
+  <Label fx:id="resultLabel" wrapText="true" text="Type a starting word and press Generate."/>
+</VBox>
