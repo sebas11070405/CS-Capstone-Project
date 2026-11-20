@@ -64,6 +64,9 @@ public class MainController {
     @FXML private TableColumn<SourceFile, OffsetDateTime> sourceTimeColumn;
     @FXML private Label sourcesSummary;   // How many files and batches, and their words in all
 
+    @FXML private Tab historyTab;
+    @FXML private HistoryController historyController;   // Injected from the History tab's fx:include
+
     /**
      * Hooks each table column up to a SourceFile field and loads the list. The time column keeps
      * the real timestamp so clicking its header sorts by time, and only its text is formatted.
@@ -91,6 +94,13 @@ public class MainController {
             }
         });
         loadSources();
+
+        // Sentences are generated on other tabs, so the history reloads each time it's opened
+        historyTab.setOnSelectionChanged(event -> {
+            if (historyTab.isSelected()) {
+                historyController.reload();
+            }
+        });
     }
 
     /**
