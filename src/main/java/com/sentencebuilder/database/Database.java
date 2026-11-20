@@ -4,6 +4,14 @@
  * or from real environment variables of the same name. Copy .env.example to
  * .env to get started. Use inTransaction for work that must commit or fail as
  * a whole, and getConnection for one-off queries.
+ *
+ * Tests can swap where connections come from (see swapConnectionSource), so
+ * code that opens its own connections can run on an isolated test connection.
+ * The app never swaps it.
+ *
+ * AI-assisted: Claude Code (connection source for isolated tests)
+ *
+ * Prompt: see src/test/java/com/sentencebuilder/integration/BatchImportIntegrationTest.java
  */
 
 package com.sentencebuilder.database;
@@ -18,6 +26,15 @@ public final class Database {
 
     // Falls back to system environment variables when a key is not in .env
     private static final Dotenv ENV = Dotenv.configure().ignoreIfMissing().load();
+
+    // Where getConnection gets its connections. Always the shared database, except inside a test.
+    private static volatile ConnectionSource connections = Database::openShared;
+
+    /** Opens one database connection. Tests supply their own to stay off the shared data. */
+    @FunctionalInterface
+    interface ConnectionSource {
+        Connection open() throws SQLException;
+    }
 
     /**
      * Database work passed to inTransaction as a lambda. Unlike Function, it may
@@ -57,6 +74,23 @@ public final class Database {
      * try-with-resources.
      */
     public static Connection getConnection() throws SQLException {
+        return connections.open();
+    }
+
+    /**
+     * Makes getConnection use the given source and returns the one it replaced,
+     * so the caller can put it back in a finally block. Only tests call this.
+     * Package-private so app code outside this package can't redirect the
+     * database by accident.
+     */
+    static ConnectionSource swapConnectionSource(ConnectionSource source) {
+        ConnectionSource previous = connections;
+        connections = source;
+        return previous;
+    }
+
+    /** Opens a new connection to the shared Supabase database from the .env credentials. */
+    private static Connection openShared() throws SQLException {
         String url = require("DB_URL");
         String user = require("DB_USER");
         String password = require("DB_PASSWORD");
