@@ -3,7 +3,7 @@
  * connections (the generators, Importer, the UI controllers) can be tested end to end without
  * reading or changing shared data.
  *
- * run opens one real connection, creates temporary source_files, words, bigrams, and trigrams
+ * run opens one real connection, creates temporary corpus and generated_sentences history
  * tables on it (they hide the shared tables of the same name on that connection only), and checks
  * that every one of those names really resolves to the temporary copy. While the work runs,
  * Database.getConnection hands out that connection. At the end it always rolls back, so the
@@ -29,7 +29,7 @@
  *
  * Needs a valid .env and network access, like the other database tests. Run with ./gradlew test.
  *
- * AI-assisted: Claude Code
+ * AI-assisted: Claude Code and Codex
  *
  * Prompt: see src/test/java/com/sentencebuilder/integration/BatchImportIntegrationTest.java
  */
@@ -52,7 +52,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class IsolatedDatabase {
 
     // The tables the corpus code reads and writes. Each must resolve to a temporary copy.
-    private static final List<String> TABLES = List.of("source_files", "words", "bigrams", "trigrams");
+    private static final List<String> TABLES = List.of(
+            "source_files", "words", "bigrams", "trigrams", "generated_sentences");
 
     // Same columns, checks, and indexes as database/schema.sql, written out so the shared tables
     // aren't touched at all. The partial unique index is what makes file imports detect duplicates.
@@ -98,6 +99,19 @@ public final class IsolatedDatabase {
                 occurrences   INT NOT NULL DEFAULT 0 CHECK (occurrences >= 0),
                 PRIMARY KEY (word1_id, word2_id, next_word_id)
             ) ON COMMIT DROP
+            """, """
+            CREATE TEMP TABLE generated_sentences
+            (
+                sentence_id   INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                sentence_text TEXT NOT NULL,
+                start_word_id INT NOT NULL REFERENCES pg_temp.words (word_id),
+                algorithm     VARCHAR(50),
+                generated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+            ) ON COMMIT DROP
+            """, """
+            CREATE INDEX ON pg_temp.generated_sentences (md5(sentence_text))
+            """, """
+            CREATE INDEX ON pg_temp.generated_sentences (start_word_id)
             """);
 
     // How long run waits, after the work ends, for connections still in use to be closed
@@ -357,6 +371,8 @@ public final class IsolatedDatabase {
     /** Creates the temporary tables on the given connection. */
     private static void createTables(Connection conn) throws SQLException {
         try (Statement statement = conn.createStatement()) {
+            // Missing temporary tables must fail instead of falling back to the shared schema
+            statement.execute("SET LOCAL search_path TO pg_temp");
             for (String sql : CREATE_TABLES) {
                 statement.execute(sql);
             }

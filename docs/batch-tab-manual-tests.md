@@ -35,7 +35,8 @@ The steps below cover these.
 
 ## Before you start
 
-**These steps write to the shared database.** Every batch you add stays in the corpus and in the
+**These steps write to the shared database.** Generate saves sentence history even before Add to
+Corpus is pressed. Every batch you add stays in the corpus and in the
 Import report, and there is no undo in the app. To keep shared data clean, point `.env` at a separate
 test database built from `database/schema.sql` with a little text imported. If you use the shared
 database, add small batches (2 or 3 sentences) and tell the team.

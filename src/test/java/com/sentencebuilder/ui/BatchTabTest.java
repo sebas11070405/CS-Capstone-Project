@@ -20,7 +20,7 @@
  * Actions runner) the tests are skipped, not failed. See docs/batch-tab-manual-tests.md for
  * checking the same things by hand. Run with ./gradlew test.
  *
- * AI-assisted: Claude Code
+ * AI-assisted: Claude Code and Codex
  *
  * Prompt: see src/test/java/com/sentencebuilder/integration/BatchImportIntegrationTest.java
  */
@@ -36,6 +36,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -151,14 +152,14 @@ class BatchTabTest {
             // The report refreshes when the user comes back to the Import tab. Its read runs on the
             // same isolated connection as the import, so this doesn't test commit visibility.
             onFx(() -> {
-                window.tabs.getSelectionModel().select(3);
+                window.tabs.getSelectionModel().select(window.findTab("Batch"));
                 return null;
             });
             window.generate("2");
             window.press(window.addButton);
             window.waitForStatus("Added");
             onFx(() -> {
-                window.tabs.getSelectionModel().select(0);
+                window.tabs.getSelectionModel().select(window.findTab("Import"));
                 return null;
             });
 
@@ -187,8 +188,8 @@ class BatchTabTest {
         private Window(TabPane tabs) {
             this.tabs = tabs;
             // The Batch tab comes from its own FXML file, so its controls are found under its tab
-            Node batch = tabs.getTabs().get(3).getContent();
-            Node importTab = tabs.getTabs().get(0).getContent();
+            Node batch = findTab("Batch").getContent();
+            Node importTab = findTab("Import").getContent();
             countField = (TextField) batch.lookup("#countField");
             maxWordsField = (TextField) batch.lookup("#maxWordsField");
             generateButton = (Button) batch.lookup("#generateButton");
@@ -197,6 +198,12 @@ class BatchTabTest {
             statusLabel = (Label) batch.lookup("#statusLabel");
             sourcesTable = (TableView<SourceFile>) importTab.lookup("#sourcesTable");
             sourcesSummary = (Label) importTab.lookup("#sourcesSummary");
+        }
+
+        /** Finds a named tab without depending on its position among the app's other tabs. */
+        private Tab findTab(String name) {
+            return tabs.getTabs().stream().filter(tab -> name.equals(tab.getText())).findFirst()
+                    .orElseThrow(() -> new AssertionError("Missing tab: " + name));
         }
 
         /**

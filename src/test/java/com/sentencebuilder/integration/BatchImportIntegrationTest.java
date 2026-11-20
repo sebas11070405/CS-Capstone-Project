@@ -24,7 +24,7 @@
  * These tests check what an import writes and what its rollback undoes, but not that a real commit
  * persists or becomes visible to other, independent connections.
  *
- * AI-assisted: Claude Code
+ * AI-assisted: Claude Code and Codex
  *
  * Prompt:
  * Create a new branch from the latest main for task 4.5 integration tests. Test the complete flow
@@ -61,6 +61,12 @@
  * shared source is never called, using a fake source so the test cannot reach shared data. Keep the
  * change focused, preserve attribution, add this follow-up prompt, and rerun the isolation and batch
  * tests. Summarize before pushing.
+ *
+ * Codex follow-up prompt (compatibility with current main):
+ * run one last check and u can open the PR
+ *
+ * Follow-up prompt:
+ * try again
  */
 
 package com.sentencebuilder.integration;
@@ -118,6 +124,9 @@ public class BatchImportIntegrationTest {
             List<String> batch = new SentenceBatchService().generateBatch(3, algorithm, MAX_WORDS);
             assertEquals(Collections.nCopies(3, SENTENCE), batch);
             assertTrue(session.connectionsOpened() > beforeGenerating, "generation bypassed the isolated setup");
+            assertEquals(3, countRows(session.connection(),
+                    "SELECT count(*) FROM generated_sentences WHERE sentence_text = ? AND algorithm = ?",
+                    SENTENCE, algorithm.name()), "generation history must stay inside the isolated setup");
 
             int beforeImporting = session.connectionsOpened();
             CorpusStats stats = new Importer().importGenerated(batch);
@@ -126,6 +135,8 @@ public class BatchImportIntegrationTest {
 
             // The seed sentence once, plus the three generated ones
             Connection conn = session.connection();
+            assertEquals(3, countRows(conn, "SELECT count(*) FROM generated_sentences"),
+                    "importing must not duplicate generation history");
             assertWord(conn, START, 4, 4, 0);
             assertWord(conn, MIDDLE, 4, 0, 0);
             assertWord(conn, END, 4, 0, 4);
