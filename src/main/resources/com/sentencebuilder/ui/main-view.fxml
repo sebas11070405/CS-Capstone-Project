@@ -7,6 +7,8 @@
   which brings its own controller (WordsController). Word List loads the sortable, filterable
   list of every word from word-list-view.fxml (WordListController). Batch loads the batch generation panel
   from batch-view.fxml, which brings BatchController.
+  History loads the generated sentence history from history-view.fxml (HistoryController).
+  MainController reloads it whenever the tab is opened.
 -->
 
 <?import javafx.geometry.Insets?>
@@ -65,5 +67,9 @@
 
   <Tab text="Batch">
     <fx:include source="batch-view.fxml"/>
+  </Tab>
+
+  <Tab fx:id="historyTab" text="History">
+    <fx:include fx:id="history" source="history-view.fxml"/>
   </Tab>
 </TabPane>

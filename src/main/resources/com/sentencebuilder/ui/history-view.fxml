@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The History tab: a table of the most recently generated sentences (sentence, start word,
+  algorithm, and time), a table of sentences generated more than once with how many times, and a
+  status line. HistoryController runs it, and MainController reloads it whenever the tab is opened.
+-->
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="8.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.sentencebuilder.ui.HistoryController">
+  <padding>
+    <Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/>
+  </padding>
+
+  <Label text="Recently generated" style="-fx-font-weight: bold;"/>
+  <TableView fx:id="recentTable" VBox.vgrow="ALWAYS">
+    <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+    <placeholder>
+      <Label text="No sentences generated yet. Make some on the Generate or Batch tab."/>
+    </placeholder>
+    <columns>
+      <TableColumn fx:id="recentSentenceColumn" text="Sentence" prefWidth="400.0"/>
+      <TableColumn fx:id="recentStartColumn" text="Start word"/>
+      <TableColumn fx:id="recentAlgorithmColumn" text="Algorithm"/>
+      <TableColumn fx:id="recentTimeColumn" text="Generated"/>
+    </columns>
+  </TableView>
+
+  <Label text="Generated more than once" style="-fx-font-weight: bold;"/>
+  <TableView fx:id="duplicatesTable" VBox.vgrow="ALWAYS">
+    <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/></columnResizePolicy>
+    <placeholder>
+      <Label text="No sentence has been generated more than once yet."/>
+    </placeholder>
+    <columns>
+      <TableColumn fx:id="duplicateSentenceColumn" text="Sentence" prefWidth="500.0"/>
+      <TableColumn fx:id="duplicateTimesColumn" text="Times"/>
+    </columns>
+  </TableView>
+
+  <Label fx:id="statusLabel" wrapText="true"/>
+</VBox>
