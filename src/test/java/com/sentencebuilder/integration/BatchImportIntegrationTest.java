@@ -12,13 +12,17 @@
  * What the unit tests already cover is left to them: input validation and generator choice in
  * SentenceBatchServiceTest, and repeated batches inside one transaction, file duplicates, and an
  * empty batch in ImporterTest. These tests add what only the joined-up flow shows: generated output
- * counted correctly once it's saved, committed repeats, the Import report's view of a batch, and a
- * failure partway through a real import.
+ * counted correctly once it's saved, the same batch imported twice through importGenerated, the
+ * Import report's view of a batch, and a failure partway through an import.
  *
  * Every connection opened during a test goes to temporary tables (see IsolatedDatabase), and each
  * test checks that generation and import really asked for connections there. Everything is rolled
  * back afterward, so shared data is never read or changed. Needs a valid .env and network access.
  * Run with ./gradlew test.
+ *
+ * All of it runs on one real connection, where each import's commit only releases a savepoint.
+ * These tests check what an import writes and what its rollback undoes, but not that a real commit
+ * persists or becomes visible to other, independent connections.
  *
  * AI-assisted: Claude Code
  *
@@ -38,6 +42,17 @@
  *
  * Follow docs/comment-style.md and include this prompt in the appropriate header. Run the relevant
  * tests, disclose anything unverified, and summarize before pushing or opening a PR.
+ *
+ * Follow-up prompt:
+ * Fix the isolation issue on batch-integration-tests: if a test fails or times out while a UI
+ * background task is still running, that task must never fall back to the shared database. Keep
+ * isolation active until outstanding work has stopped, and make late connection requests fail safely.
+ * Add a regression test that delays a background connection request until after the test fails and
+ * verifies it cannot reach shared data.
+ *
+ * Also correct the comments and documentation: the helper uses savepoints, so these tests don't
+ * verify real commit persistence across independent connections. Keep the changes focused, preserve
+ * attribution, and add this follow-up prompt. Run the relevant tests and summarize before pushing.
  */
 
 package com.sentencebuilder.integration;
@@ -147,7 +162,7 @@ public class BatchImportIntegrationTest {
             seed(dir);
             List<String> batch = new SentenceBatchService().generateBatch(2, Algorithm.MOST_LIKELY, MAX_WORDS);
 
-            // Two separate committed imports, the way pressing Add to Corpus for two batches would be
+            // Two separate imports, each in its own (savepoint) transaction, like two Add to Corpus presses
             new Importer().importGenerated(batch);
             new Importer().importGenerated(batch);
 

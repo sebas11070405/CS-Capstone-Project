@@ -19,8 +19,19 @@ buttons with `fire()`, and runs against temporary tables, so it never touches sh
 It runs only where JavaFX can open a screen. On the GitHub Actions runner it is skipped, so run
 `./gradlew test` locally to see it pass.
 
-What it can't show: real mouse clicks (it calls `fire()`, which ignores a disabled button the same way
-a click does), a real network failure, and how the window looks. The steps below cover those.
+If a test fails or times out while one of the app's background tasks is still running, that task's
+later connection requests are refused, so it can't fall back to the shared database.
+
+What it can't show:
+
+- Real commits. Every connection in the test is a stand-in for one real connection, and an import's
+  commit only releases a savepoint inside a transaction that is rolled back at the end. The report
+  reads on that same connection. So the test doesn't show that a committed batch persists, or that
+  the Import tab's own separate connection sees it. Step 3 below checks that.
+- Real mouse clicks. It calls `fire()`, which ignores a disabled button the same way a click does.
+- A real network failure, and how the window looks.
+
+The steps below cover these.
 
 ## Before you start
 
@@ -60,3 +71,5 @@ failure partway through the save, which can't easily be caused by hand.
 3. Go back to the **Import** tab. Expected: the newest row is "Generated batch of 2 sentences", Type
    "Generated", with the word count from the Batch status line. The total shows one more generated
    batch and that many more words.
+4. Close the app and run it again. Expected: the batch is still listed. This is the part the
+   automated tests can't check, since they never really commit.

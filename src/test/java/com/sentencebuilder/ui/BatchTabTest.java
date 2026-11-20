@@ -7,7 +7,14 @@
  * The buttons are pressed with fire(), which does nothing on a disabled button, just like a real
  * click. The controllers run their database work on background threads as usual, and every
  * connection they open goes to temporary tables (see IsolatedDatabase), so shared data is never
- * read or changed. The corpus is the one-sentence seed from BatchImportIntegrationTest.
+ * read or changed. That holds even when a test fails or times out with a task still running: a
+ * late connection request from that task is refused. The corpus is the one-sentence seed from
+ * BatchImportIntegrationTest.
+ *
+ * Every connection here is a stand-in for one real connection, and imports only release a
+ * savepoint instead of committing. So the report test shows the Import tab reloads and lists the
+ * batch, but not that a real commit makes it visible to the report's own, separate connection.
+ * docs/batch-tab-manual-tests.md covers that by hand.
  *
  * Needs a valid .env, network access, and a screen for JavaFX. Without a screen (as on the GitHub
  * Actions runner) the tests are skipped, not failed. See docs/batch-tab-manual-tests.md for
@@ -81,7 +88,7 @@ class BatchTabTest {
         assumeTrue(toolkitStarted, "JavaFX can't start without a screen");
         IsolatedDatabase.run(session -> {
             seed(dir);
-            Window window = Window.open();
+            Window window = Window.open(session);
             window.generate("2");
 
             // Both presses land before the import finishes, the same as a quick double click
@@ -111,7 +118,7 @@ class BatchTabTest {
         assumeTrue(toolkitStarted, "JavaFX can't start without a screen");
         IsolatedDatabase.run(session -> {
             seed(dir);
-            Window window = Window.open();
+            Window window = Window.open(session);
             window.generate("2");
 
             // Fail on the last table saved, after the batch row, words, and pairs have been written
@@ -138,10 +145,11 @@ class BatchTabTest {
         assumeTrue(toolkitStarted, "JavaFX can't start without a screen");
         IsolatedDatabase.run(session -> {
             seed(dir);
-            Window window = Window.open();
+            Window window = Window.open(session);
             window.waitForSummary("1 file and 0 generated batches, 3 words in all");
 
-            // The report refreshes when the user comes back to the Import tab
+            // The report refreshes when the user comes back to the Import tab. Its read runs on the
+            // same isolated connection as the import, so this doesn't test commit visibility.
             onFx(() -> {
                 window.tabs.getSelectionModel().select(3);
                 return null;
@@ -193,10 +201,13 @@ class BatchTabTest {
 
         /**
          * Loads main-view.fxml as the app does and waits for the Import report's first load to
-         * finish, so no background read is still running when the test changes anything.
+         * finish, so no background read is still running when the test changes anything. Claims
+         * the JavaFX thread for the session first, so every task the controllers start from it,
+         * even after the test ends, is tied to this session and can't reach the shared database.
          */
-        static Window open() throws Exception {
+        static Window open(IsolatedDatabase.Session session) throws Exception {
             Window window = onFx(() -> {
+                session.claimCurrentThread();
                 TabPane root = new FXMLLoader(MainController.class.getResource("main-view.fxml")).load();
                 // Like the app's window. Applying CSS gives the tab pane its skin, which is what tells
                 // each tab it was selected, so the Import tab's reload-on-return can run.
