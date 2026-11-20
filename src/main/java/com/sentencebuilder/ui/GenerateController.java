@@ -4,6 +4,9 @@
  * next word, or Trigram backoff). Batches of sentences from random starting words are on the
  * Batch tab (BatchController).
  *
+ * Each sentence is recorded in the generated sentence history (see SentenceHistory) as soon as
+ * it's made, so the user can look for duplicates later.
+ *
  * Database work runs on a background thread so the window doesn't freeze, because every
  * generated word is a database query.
  *
@@ -21,6 +24,7 @@ import com.sentencebuilder.generator.AbstractGenerator;
 import com.sentencebuilder.generator.FrequentWordGenerator;
 import com.sentencebuilder.generator.MarkovGenerator;
 import com.sentencebuilder.generator.SentenceBatchService.Algorithm;
+import com.sentencebuilder.generator.SentenceHistory;
 import com.sentencebuilder.generator.TrigramBackoffGenerator;
 import com.sentencebuilder.repository.TransitionRepository;
 import com.sentencebuilder.tokenizer.Tokenizer;
@@ -32,6 +36,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.util.StringConverter;
 
+import java.util.List;
 import java.util.Optional;
 
 public class GenerateController {
@@ -65,8 +70,9 @@ public class GenerateController {
 
     /**
      * Normalizes the typed word the same way imported text is, then generates one
-     * sentence from it in the background with the chosen algorithm. Says so instead
-     * if the word was never imported, since every algorithm would stop right away.
+     * sentence from it in the background with the chosen algorithm and records it in
+     * the history. Says so instead if the word was never imported, since every
+     * algorithm would stop right away.
      */
     @FXML
     private void onGenerate() {
@@ -80,12 +86,15 @@ public class GenerateController {
         // An empty result means the word isn't in the database
         Task<Optional<String>> task = new Task<>() {
             @Override
-            protected Optional<String> call() {
+            protected Optional<String> call() throws Exception {
                 PostgresTransitionRepo bigrams = new PostgresTransitionRepo();
                 if (!bigrams.wordExists(word)) {
                     return Optional.empty();
                 }
-                return Optional.of(createGenerator(algorithm, word, bigrams).generateSentence());
+                String sentence = createGenerator(algorithm, word, bigrams).generateSentence();
+                // Raw text, so it matches the batch sentences when looking for duplicates
+                SentenceHistory.record(algorithm, List.of(word), List.of(sentence));
+                return Optional.of(sentence);
             }
         };
         task.setOnSucceeded(event -> {

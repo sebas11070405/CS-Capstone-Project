@@ -3,7 +3,7 @@ package com.sentencebuilder.generator;
 import com.sentencebuilder.model.WordTransition;
 import com.sentencebuilder.repository.TransitionRepository;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * Generates sentences using the Most Frequent Word algorithm
@@ -49,10 +49,14 @@ public class FrequentWordGenerator extends AbstractGenerator {
      * Algorithm begins with the specified starting word and retrieves its possible transitions from the
      * repository. The transitions with the highest frequency is selected and appended to the sentence.
      *
+     * A hashset is used to keep track of which word pairs have already appeared in a generated sentence,
+     * which prevents the sentence generated from cycling the same words.
+     *
      * @return generated sentence containing up to maxWords words
      */
     @Override
     public String generateSentence() {
+        Set<String> usedPairs = new HashSet<>();
 
         StringBuilder sentence = new StringBuilder(startWord);
 
@@ -66,12 +70,15 @@ public class FrequentWordGenerator extends AbstractGenerator {
                 break;
             }
 
-            String nextWord = selectNextWord(transitions);
+            String nextWord = selectNextWord(currentWord, transitions, usedPairs);
 
             /** Stop generation if no valid next word is available */
             if(nextWord == null){
                 break;
             }
+
+            /** Record the selected word pair **/
+            usedPairs.add(currentWord + "->" + nextWord);
 
             /** Append the selected word and update the current word */
             sentence.append(" ").append(nextWord);
@@ -89,22 +96,36 @@ public class FrequentWordGenerator extends AbstractGenerator {
      * The method iterates through all transitions and selects the candidate with the highest frequency.
      *
      * If multiple transitions share the highest frequency, the first encountered transition is selected.
+     * Ignores transitions that have already appeared in the sentence.
      *
      * @param transitions list of possible next-word transitions and their corresponding frequencies
      * @return next word with the highest frequency or null
      */
-    private String selectNextWord(List<WordTransition> transitions){
+    private String selectNextWord(String currentWord, List<WordTransition> transitions, Set<String> usedPairs){
         if(transitions == null || transitions.isEmpty()){
             return null;
         }
 
-        WordTransition mostFrequent = transitions.get(0);
+        WordTransition mostFrequent = null;
 
         /** Find transition with the highest frequency */
         for (WordTransition transition : transitions){
-            if(transition.getOccurrences() > mostFrequent.getOccurrences()){
+
+            String nextWord = transition.getNextWord();
+            String pair = currentWord + "->" + nextWord;
+
+            /** Skips previously used word pairs **/
+            if(usedPairs.contains(pair)){
+                continue;
+            }
+
+            if(mostFrequent == null || transition.getOccurrences() > mostFrequent.getOccurrences()){
                 mostFrequent = transition;
             }
+        }
+        /** Return null if every transition has already been used **/
+        if (mostFrequent == null){
+            return null;
         }
 
         return mostFrequent.getNextWord();

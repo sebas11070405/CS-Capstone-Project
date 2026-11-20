@@ -1,8 +1,9 @@
 /*
  * Starts the JavaFX application and opens the main window. The window's layout
  * is in main-view.fxml, which has an Import tab (handled by MainController), a
- * Words tab (handled by WordsController), and a Batch tab (handled by
- * BatchController). Run it from the repository root with ./gradlew run.
+ * Words tab (handled by WordsController), a Word List tab (handled by
+ * WordListController), and a Batch tab (handled by BatchController). Run it
+ * from the repository root with ./gradlew run.
  */
 
 package com.sentencebuilder.app;

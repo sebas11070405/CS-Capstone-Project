@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Auto-complete panel: a box to type a sentence in, up to 5 next-word suggestions shown as
+  buttons once a word is finished by a space, comma, or period, a Clear button, and a status
+  line. AutocompleteController runs it.
+
+  AI-assisted: Claude
+
+  Prompt: see src/main/java/com/sentencebuilder/ui/AutocompleteController.java
+-->
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="8.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.sentencebuilder.ui.AutocompleteController">
+    <padding>
+        <Insets bottom="16.0" left="16.0" right="16.0" top="16.0"/>
+    </padding>
+
+    <Label text="Auto-complete" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    <Label text="Type a sentence. Click a suggestion, or keep typing your own word." wrapText="true"/>
+
+    <TextArea fx:id="inputArea" promptText="Start typing, e.g. the " wrapText="true" prefRowCount="4"/>
+
+    <Label text="Next word"/>
+    <FlowPane fx:id="suggestionPane" hgap="8.0" vgap="8.0">
+        <Label fx:id="suggestionHint" text="Suggestions appear after a space, comma, or period."/>
+    </FlowPane>
+
+    <HBox spacing="12.0" alignment="CENTER_LEFT">
+        <Button text="Clear" onAction="#onClear"/>
+        <Label fx:id="statusLabel" wrapText="true"/>
+    </HBox>
+</VBox>

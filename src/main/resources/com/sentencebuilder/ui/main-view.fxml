@@ -4,8 +4,11 @@
   only while an import runs, the status label that reports its progress and result, and a
   table of every imported file and generated batch with a word total underneath,
   all handled by MainController. Words loads the word lookup panel from words-view.fxml,
-  which brings its own controller (WordsController). Batch loads the batch generation panel
+  which brings its own controller (WordsController). Word List loads the sortable, filterable
+  list of every word from word-list-view.fxml (WordListController). Batch loads the batch generation panel
   from batch-view.fxml, which brings BatchController.
+  History loads the generated sentence history from history-view.fxml (HistoryController).
+  MainController reloads it whenever the tab is opened.
 -->
 
 <?import javafx.geometry.Insets?>
@@ -50,11 +53,23 @@
     <fx:include source="generate-view.fxml"/>
   </Tab>
 
+  <Tab text="Auto-complete">
+    <fx:include source="autocomplete-view.fxml"/>
+  </Tab>
+
   <Tab text="Words">
     <fx:include source="words-view.fxml"/>
   </Tab>
 
+  <Tab text="Word List">
+    <fx:include source="word-list-view.fxml"/>
+  </Tab>
+
   <Tab text="Batch">
     <fx:include source="batch-view.fxml"/>
+  </Tab>
+
+  <Tab fx:id="historyTab" text="History">
+    <fx:include fx:id="history" source="history-view.fxml"/>
   </Tab>
 </TabPane>
