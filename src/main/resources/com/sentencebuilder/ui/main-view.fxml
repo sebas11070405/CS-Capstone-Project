@@ -50,6 +50,10 @@
     <fx:include source="generate-view.fxml"/>
   </Tab>
 
+  <Tab text="Auto-complete">
+    <fx:include source="autocomplete-view.fxml"/>
+  </Tab>
+
   <Tab text="Words">
     <fx:include source="words-view.fxml"/>
   </Tab>
