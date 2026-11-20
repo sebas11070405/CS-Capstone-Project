@@ -53,6 +53,14 @@
  * Also correct the comments and documentation: the helper uses savepoints, so these tests don't
  * verify real commit persistence across independent connections. Keep the changes focused, preserve
  * attribution, and add this follow-up prompt. Run the relevant tests and summarize before pushing.
+ *
+ * Follow-up prompt:
+ * Fix the remaining cleanup race in IsolatedDatabase.route(): a session-owned thread must always use
+ * owner.open(), never fall through to shared.open(), even if cleanup happens during the connection
+ * request. Add a deterministic regression test that overlaps cleanup with routing and verifies the
+ * shared source is never called, using a fake source so the test cannot reach shared data. Keep the
+ * change focused, preserve attribution, add this follow-up prompt, and rerun the isolation and batch
+ * tests. Summarize before pushing.
  */
 
 package com.sentencebuilder.integration;

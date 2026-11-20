@@ -13,7 +13,8 @@
  * or a wait times out. So every thread that belongs to a session is marked: the test's own thread,
  * any thread a test claims (like the JavaFX thread, see claimCurrentThread), and every thread those
  * start, at any time. Once the session ends, a connection request from a marked thread throws
- * SQLException. It is never sent to the shared database. Before rolling back, run waits a while for
+ * SQLException. A marked thread is never sent to the shared database, even when its session ends
+ * while its request is being routed. Before rolling back, run waits a while for
  * connections still in use to close, so work in flight finishes on the isolated tables. Requests
  * from unmarked threads go to the shared database between sessions, as before, so other tests see
  * no difference.
@@ -109,6 +110,10 @@ public final class IsolatedDatabase {
     private static volatile Session active;           // The session running now, or null between tests
     private static Database.ConnectionSource shared;  // The real source, set once the router is installed
 
+    // Test-only: runs inside route after it has looked up the caller's session, so a test can end
+    // the session at exactly that point. Null in normal use.
+    static volatile Runnable beforeDispatch;
+
     /** Test code passed to run as a lambda. Unlike Runnable, it may throw. */
     @FunctionalInterface
     public interface Work {
@@ -127,7 +132,7 @@ public final class IsolatedDatabase {
         private volatile String failOn;   // SQL text that makes the next matching statement fail
         private volatile boolean ended;   // Once true, every request from this session's threads fails
 
-        private Session(Connection conn) {
+        Session(Connection conn) {
             this.conn = conn;
         }
 
@@ -163,11 +168,13 @@ public final class IsolatedDatabase {
          * about to be rolled back and closed.
          */
         private Connection open() throws SQLException {
+            // Count it as in use before checking, so cleanup either waits for it or it sees the end
+            inUse.incrementAndGet();
             if (ended) {
+                inUse.decrementAndGet();
                 throw lateRequest();
             }
             opened.incrementAndGet();
-            inUse.incrementAndGet();
             return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
                     new Class<?>[] {Connection.class}, new StandIn());
         }
@@ -276,16 +283,11 @@ public final class IsolatedDatabase {
 
                 // Every getConnection call goes to this connection while the work runs
                 Session session = new Session(conn);
-                OWNER.set(session);
-                active = session;
+                begin(session);
                 try {
                     work.run(session);
                 } finally {
-                    // End the session before anything else, so no request slips through to the shared
-                    // database while the rest of the cleanup runs
-                    session.ended = true;
-                    active = null;
-                    OWNER.remove();   // The test thread itself goes on to other tests
+                    end(session);
                     session.awaitIdle();
                 }
             } finally {
@@ -301,21 +303,49 @@ public final class IsolatedDatabase {
      */
     private static synchronized void installRouter() {
         if (shared == null) {
-            shared = Database.swapConnectionSource(IsolatedDatabase::route);
+            shared = Database.swapConnectionSource(() -> route(shared));
         }
     }
 
     /**
-     * Decides where one Database.getConnection call goes: refused if it comes from a session that
-     * has ended, to the running session if there is one, and otherwise to the real source.
+     * Decides where one Database.getConnection call goes. A thread that belongs to a session always
+     * gets that session's connection, or a refusal if the session has ended. Any other thread gets
+     * the running session's connection if there is one, and otherwise one from sharedSource, the
+     * real source in normal use. Takes the source as an argument so a test can pass a fake one.
      */
-    private static Connection route() throws SQLException {
+    static Connection route(Database.ConnectionSource sharedSource) throws SQLException {
         Session owner = OWNER.get();
-        if (owner != null && owner.ended) {
-            throw lateRequest();
+        Runnable pause = beforeDispatch;
+        if (pause != null) {
+            pause.run();
+        }
+        if (owner != null) {
+            // A session's thread only ever gets that session's connection, never the shared source,
+            // and open refuses once the session has ended. So a session ending mid-request can't
+            // send it to the shared database.
+            return owner.open();
         }
         Session current = active;
-        return current != null ? current.open() : shared.open();
+        return current != null ? current.open() : sharedSource.open();
+    }
+
+    /**
+     * Marks the calling thread as part of the session and makes it the running one. run calls this
+     * once the temporary tables are ready.
+     */
+    static void begin(Session session) {
+        OWNER.set(session);
+        active = session;
+    }
+
+    /**
+     * Ends the session before any other cleanup, so from here on every request from its threads is
+     * refused, then unmarks the calling thread, which goes on to other tests.
+     */
+    static void end(Session session) {
+        session.ended = true;
+        active = null;
+        OWNER.remove();
     }
 
     /** The error a late request gets, saying why it was refused. */

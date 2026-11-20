@@ -8,8 +8,14 @@
  * that existed before the test and starts new work after it, the way the JavaFX thread starts a
  * Task from a success or failure handler.
  *
+ * The third test covers a request already being routed when the session ends. It pauses the
+ * request inside IsolatedDatabase.route, runs the session cleanup at that moment, and checks the
+ * request is refused and never reaches the shared source. It uses a fake shared source and a fake
+ * connection, so it needs no database at all.
+ *
  * The late requests are refused before any connection is opened, so nothing reaches shared data.
- * Needs a valid .env and network access for the isolated session itself. Run with ./gradlew test.
+ * The first two tests need a valid .env and network access for the isolated session itself. Run
+ * with ./gradlew test.
  *
  * AI-assisted: Claude Code
  *
@@ -20,6 +26,7 @@ package com.sentencebuilder.database;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
@@ -27,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -79,6 +87,65 @@ class IsolatedDatabaseTest {
             assertRefused(outcome.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
         } finally {
             eventThread.shutdownNow();
+        }
+    }
+
+    @Test
+    void sessionEndingWhileARequestIsRoutedNeverReachesTheSharedSource() throws Exception {
+        // Fakes for both sides, so nothing here can reach any database: the shared source only
+        // counts calls, and the session's connection fails if anything uses it
+        AtomicInteger sharedCalls = new AtomicInteger();
+        Database.ConnectionSource fakeShared = () -> {
+            sharedCalls.incrementAndGet();
+            throw new SQLException("the fake shared source was called");
+        };
+        Connection fakeConnection = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
+                new Class<?>[] {Connection.class}, (proxy, method, args) -> {
+                    throw new UnsupportedOperationException("fake connection");
+                });
+        IsolatedDatabase.Session session = new IsolatedDatabase.Session(fakeConnection);
+
+        CountDownLatch routing = new CountDownLatch(1);   // The request has looked up its session
+        CountDownLatch cleanedUp = new CountDownLatch(1); // The session has ended
+        CompletableFuture<Throwable> outcome = new CompletableFuture<>();
+        IsolatedDatabase.begin(session);
+        try {
+            // Started while the session runs, so it belongs to it
+            Thread request = new Thread(() -> {
+                try (Connection conn = IsolatedDatabase.route(fakeShared)) {
+                    outcome.complete(null);
+                } catch (Throwable e) {
+                    outcome.complete(e);
+                }
+            });
+            request.setDaemon(true);
+            IsolatedDatabase.beforeDispatch = () -> {
+                if (Thread.currentThread() == request) {
+                    routing.countDown();
+                    awaitQuietly(cleanedUp);
+                }
+            };
+            request.start();
+
+            // Run the same cleanup as IsolatedDatabase.run, exactly while the request is mid-route
+            assertTrue(routing.await(TIMEOUT_SECONDS, TimeUnit.SECONDS), "the request never started routing");
+            IsolatedDatabase.end(session);
+            cleanedUp.countDown();
+
+            assertRefused(outcome.get(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            assertEquals(0, sharedCalls.get(), "the request was sent to the shared source");
+        } finally {
+            IsolatedDatabase.beforeDispatch = null;
+            IsolatedDatabase.end(session);   // Harmless if already ended; clears it if the test failed early
+        }
+    }
+
+    /** Waits for the latch for up to TIMEOUT_SECONDS, so a broken test can't hang forever. */
+    private static void awaitQuietly(CountDownLatch latch) {
+        try {
+            latch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
