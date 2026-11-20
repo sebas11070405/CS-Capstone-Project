@@ -106,7 +106,7 @@ public class Autocomplete {
             return List.of();
         }
 
-        previousWord = previousWord.trim().toLowerCase();
+        previousWord = Tokenizer.normalizeWord(previousWord);
 
         // Unknown words have no stored transitions
         if(!repo.wordExists(previousWord)){
@@ -132,11 +132,10 @@ public class Autocomplete {
      * Records a user-selected word transition when it already exists.
      *
      * The method checks that both words exist in the database.
-     * If either word is unknown, no database modification is made.
+     * If either word does not exist in the database, it is added before recording the selection.
      *
      * The repository is responsible for updating the user_selected
-     * count of an existing bigram. Missing bigram relationships
-     * are not created.
+     * count of an existing bigram. Also handles creating new bigram relationships.
      *
      * @param previousWord the word preceding the selected word
      * @param chosenWord the word entered or selected by the user
@@ -149,15 +148,27 @@ public class Autocomplete {
             );
         }
 
-        previousWord = previousWord.trim().toLowerCase();
-        chosenWord = chosenWord.trim().toLowerCase();
+        /** Normalize words using the same rules as the importer **/
+        previousWord = Tokenizer.normalizeWord(previousWord);
+        chosenWord = Tokenizer.normalizeWord(chosenWord);
 
-        // Don't automatically insert unknown words into the database
-        if(!repo.wordExists(previousWord) || !repo.wordExists(chosenWord)){
-            return;
+        /** Reject words that cannot be normalized **/
+        if(previousWord == null || previousWord.isBlank() || chosenWord == null || chosenWord.isBlank()){
+            throw new IllegalArgumentException(
+                    "Previous word and chosen word must be valid words."
+            );
         }
 
-        // Repository handles inserting new bigrams or incrementing user_selected counts
+        /** Add unknown words before recording selection **/
+        if (!repo.wordExists(previousWord)){
+            repo.addWord(previousWord);
+        }
+
+        if(!repo.wordExists(chosenWord)){
+            repo.addWord(chosenWord);
+        }
+
+        /** Record the selected transition **/
         repo.recordSelection(previousWord, chosenWord);
     }
 }

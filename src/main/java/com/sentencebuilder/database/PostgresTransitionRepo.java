@@ -159,7 +159,7 @@ public class PostgresTransitionRepo implements TransitionRepository{
      * word suggestion.
      *
      * If the specified bigram does not exist in the database,
-     * the method throws an IllegalArgumentException.
+     * a new relationship is created with occurrences = 0 and user_selected = 1.
      *
      * @param previousWord the word preceding the selected suggestion
      * @param nextWord the word selected by the user
