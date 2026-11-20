@@ -8,8 +8,10 @@
  * Starting words are picked independently, so the same word (and so the same
  * sentence) can come up more than once in a batch. If no word has ever started
  * a sentence, generateBatch throws NoStartWordException before generating
- * anything. It only reads from the database. Saving the batch is left to the
- * caller (see Importer.importGenerated), and nothing here depends on the UI.
+ * anything. Once the batch is made, each sentence is recorded with its starting
+ * word in the generated sentence history (see SentenceHistory), so duplicates can
+ * be found later. Adding the batch to the corpus is left to the caller (see
+ * Importer.importGenerated), and nothing here depends on the UI.
  *
  * Generators are created only in createGenerator, so a change to the generator
  * constructors needs only that method updated.
@@ -73,26 +75,51 @@ public class SentenceBatchService {
         List<String> pick(int count) throws SQLException, NoStartWordException;
     }
 
+    /**
+     * Records a finished batch, matching each sentence to its starting word by position. Outside
+     * of tests this is SentenceHistory.record.
+     */
+    @FunctionalInterface
+    interface HistoryRecorder {
+        void record(Algorithm algorithm, List<String> startWords, List<String> sentences) throws SQLException;
+    }
+
     private final StartWordPicker startWords;     // Database-backed unless a test supplies its own
     private final TransitionRepository bigrams;   // Next-word counts for every algorithm
     private final TrigramRepo trigrams;           // Two-word counts, used only by TRIGRAM_BACKOFF
+    private final HistoryRecorder history;        // Where each finished batch is recorded
 
-    /** Creates a service that reads starting words and word counts from the shared database. */
+    /**
+     * Creates a service that reads starting words and word counts from the shared database and
+     * records every batch in the generated sentence history.
+     */
     public SentenceBatchService() {
-        this(SentenceBatchService::pickFromDatabase, new PostgresTransitionRepo(), new PostgresTrigramRepo());
+        this(SentenceBatchService::pickFromDatabase, new PostgresTransitionRepo(), new PostgresTrigramRepo(),
+                SentenceHistory::record);
     }
 
-    /** Creates a service with the given sources. Package-private so tests can avoid the database. */
+    /**
+     * Creates a service with the given sources that records nothing. Package-private so tests can
+     * avoid the database.
+     */
     SentenceBatchService(StartWordPicker startWords, TransitionRepository bigrams, TrigramRepo trigrams) {
+        this(startWords, bigrams, trigrams, (algorithm, words, sentences) -> {});
+    }
+
+    /** Creates a service with the given sources and history. Package-private for tests. */
+    SentenceBatchService(StartWordPicker startWords, TransitionRepository bigrams, TrigramRepo trigrams,
+                         HistoryRecorder history) {
         this.startWords = startWords;
         this.bigrams = bigrams;
         this.trigrams = trigrams;
+        this.history = history;
     }
 
     /**
      * Generates sentenceCount sentences with the given algorithm, each starting
-     * with its own randomly picked word and at most maxWords words long. Returns
-     * them in the order they were made, repeats included. Throws
+     * with its own randomly picked word and at most maxWords words long, and
+     * records them in the generated sentence history. Returns them in the order
+     * they were made, repeats included. Throws
      * IllegalArgumentException if sentenceCount or maxWords is below 1 or the
      * algorithm is null, before anything is read.
      *
@@ -119,6 +146,9 @@ public class SentenceBatchService {
         for (String startWord : starts) {
             sentences.add(createGenerator(algorithm, maxWords, startWord, bigrams, trigrams).generateSentence());
         }
+
+        // Recorded only once the whole batch is made, so a failed batch leaves no partial history
+        history.record(algorithm, starts, sentences);
         return sentences;
     }
 

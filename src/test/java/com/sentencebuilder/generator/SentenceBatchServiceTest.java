@@ -1,7 +1,8 @@
 /*
  * Checks that SentenceBatchService validates its inputs, makes one sentence
  * per requested count with the chosen algorithm, allows repeated starting
- * words and sentences, and reports a corpus with no starting words clearly.
+ * words and sentences, records each finished batch with its starting words,
+ * and reports a corpus with no starting words clearly.
  *
  * The batch tests use an in-memory word chain ("the" -> "cat" -> "sat") and
  * starting words chosen by the test, so they need no database. The
@@ -122,6 +123,33 @@ class SentenceBatchServiceTest {
         assertEquals(List.of("the cat sat"), serviceStartingWith("the").generateBatch(1, algorithm, 5));
         assertEquals(List.of("the cat"), serviceStartingWith("the").generateBatch(1, algorithm, 2));
         assertEquals(List.of("the"), serviceStartingWith("the").generateBatch(1, algorithm, 1));
+    }
+
+    @Test
+    void recordsTheBatchWithEachSentencesStartWord() throws Exception {
+        List<String> recorded = new ArrayList<>();
+        SentenceBatchService service = new SentenceBatchService(count -> List.of("the", "cat"), new ChainRepo(),
+                NO_TRIGRAMS, (algorithm, startWords, sentences) -> {
+                    for (int iSentence = 0; iSentence < sentences.size(); iSentence++) {
+                        recorded.add(algorithm + " " + startWords.get(iSentence) + ": " + sentences.get(iSentence));
+                    }
+                });
+
+        List<String> batch = service.generateBatch(2, Algorithm.WEIGHTED_RANDOM, 5);
+
+        assertEquals(List.of("WEIGHTED_RANDOM the: the cat sat", "WEIGHTED_RANDOM cat: cat sat"), recorded);
+        assertEquals(List.of("the cat sat", "cat sat"), batch);
+    }
+
+    @Test
+    void aFailedBatchRecordsNothing() {
+        SentenceBatchService service = new SentenceBatchService(count -> {
+            throw new NoStartWordException("none");
+        }, new ChainRepo(), NO_TRIGRAMS, (algorithm, startWords, sentences) -> {
+            throw new AssertionError("a batch that failed was recorded");
+        });
+
+        assertThrows(NoStartWordException.class, () -> service.generateBatch(3, Algorithm.MOST_LIKELY, 5));
     }
 
     @Test
