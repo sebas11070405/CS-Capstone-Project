@@ -2,6 +2,7 @@ package com.sentencebuilder.generator;
 
 import com.sentencebuilder.database.PostgresTransitionRepo;
 import com.sentencebuilder.repository.TransitionRepository;
+import java.util.*;
 
 import org.junit.jupiter.api.Test;
 
@@ -59,6 +60,29 @@ public class FrequentWordTest {
 
         assertEquals("abcde", sentence);
 
+        System.out.println("Sentence: " + sentence);
+    }
+
+    /**
+     * Test that no pair appears twice.
+     */
+    @Test
+    public void testAvoidsRepeats(){
+        TransitionRepository repo = new PostgresTransitionRepo();
+
+        FrequentWordGenerator generator = new FrequentWordGenerator(10, repo, "the");
+
+        String sentence = generator.generateSentence();
+
+        String[] words = sentence.split(" ");
+
+        Set<String> pairs = new HashSet<>();
+
+        for(int i = 0; i < words.length-1; i++){
+            String pair = words[i] + "->" + words[i+1];
+
+            assertTrue(pairs.add(pair), "Repeated word: " + pair);
+        }
         System.out.println("Sentence: " + sentence);
     }
 
