@@ -100,4 +100,23 @@ class AutocompleteTypedTextTest {
         assertTrue(autocomplete.getSuggestionsForText("elephnat ", 3).isEmpty());
         assertTrue(autocomplete.getSuggestionsForText("girl ", 3).isEmpty());
     }
+
+    @Test
+    void typingUnknownWordDoesNotAddIt(){
+        String word = "efghi";
+        autocomplete.getSuggestionsForText("the efghi ", 3);
+
+        assertTrue(autocomplete.getSuggestionsForText(word, 3).isEmpty());
+    }
+
+    @Test
+    void recordingUnknownWordAddsIt() {
+        String word = "lmnop";
+
+        assertFalse(autocomplete.getSuggestionsForText( "the ", 100).stream().anyMatch(t -> t.getNextWord().equals(word)));
+
+        autocomplete.recordChoice("the", word);
+
+        assertTrue(autocomplete.getSuggestionsForText( "the ", 100).stream().anyMatch(t -> t.getNextWord().equals(word)));
+    }
 }

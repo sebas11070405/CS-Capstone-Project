@@ -32,10 +32,13 @@ import com.sentencebuilder.database.PostgresTransitionRepo;
 import com.sentencebuilder.model.WordTransition;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.FlowPane;
 
 import java.util.ArrayList;
@@ -43,6 +46,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
 
 public class AutocompleteController {
 
@@ -115,22 +119,33 @@ public class AutocompleteController {
     private void saveWord(String previous, String word) {
         Task<String> task = new Task<>() {
             @Override
-            protected String call() {
+            protected String call() throws Exception {
                 boolean added = false;
+
                 if (!repo.wordExists(word)) {
+                    // Ask permission before adding new word
+                    if(!confirmAddWord(word)){
+                        return "\"" + word + "\" was not added to the database.";
+                    }
+
                     repo.addWord(word);
                     added = true;
                 }
-                if (previous != null) {
+
+                boolean recorded = false;
+
+                if (previous != null && repo.wordExists(previous)) {
                     autocomplete.recordChoice(previous, word);
+                    recorded = true;
                 }
 
                 if (added) {
                     return "Added the new word \"" + word + "\" to the database.";
                 }
-                return previous != null ? "Counted \"" + word + "\" after \"" + previous + "\"." : "";
+                return recorded ? "Counted \"" + word + "\" after \"" + previous + "\"." : "";
             }
         };
+
         task.setOnSucceeded(event -> {
             if (!task.getValue().isEmpty()) {
                 statusLabel.setText(task.getValue());
@@ -232,5 +247,29 @@ public class AutocompleteController {
     /** The same word breaks Autocomplete.completedWord uses: whitespace, a comma, or a period. */
     private static boolean isWordBreak(char character) {
         return Character.isWhitespace(character) || character == ',' || character == '.';
+    }
+
+    /** An unknown word alerts a confirmation prompt to appear for user to select whether or not to invoke saveWord **/
+    private boolean confirmAddWord(String word) throws Exception{
+        //Hold user's decision
+        FutureTask<Boolean> confirm = new FutureTask<>(() -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+
+            alert.setTitle("Unknown Word");
+            alert.setHeaderText("This word is not in the database.");
+            alert.setContentText("Would you like to add \"" + word + "\" to the database?");
+
+            alert.getButtonTypes().setAll(
+                    ButtonType.YES,
+                    ButtonType.NO
+            );
+
+            return alert.showAndWait().filter(response -> response == ButtonType.YES).isPresent();
+        });
+
+        //Display confirmation
+        Platform.runLater(confirm);
+
+        return confirm.get();
     }
 }
