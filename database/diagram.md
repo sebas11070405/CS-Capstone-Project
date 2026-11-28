@@ -28,14 +28,17 @@ erDiagram
         int sentence_id PK
         text sentence_text
         int start_word_id FK
+        varchar algorithm
         timestamptz generated_at
     }
 
     source_files {
         int file_id PK
         varchar file_name
+        varchar source_type "file or generated"
         int word_count
         timestamptz imported_at
+        char content_hash UK "unique when source_type is file"
     }
 
     words ||--o{ bigrams : "word_id, next_word_id"
